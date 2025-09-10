@@ -1,7 +1,7 @@
 import pytest
 
+from tests.base import BaseTestCase
 from tests.factories import DocumentFactory, MessageFactory, SessionFactory
-from tests.test_api.base import BaseTestCase
 
 
 class TestCreateSession(BaseTestCase):

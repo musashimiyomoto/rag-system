@@ -37,7 +37,7 @@ check:
 
 test:
 	@echo "$(BLUE)Running tests...$(NC)"
-	$(POETRY) run pytest --cov=. --cov-report=html --cov-report=term
+	$(POETRY) run pytest
 	@echo "$(GREEN)Tests completed!$(NC)"
 
 

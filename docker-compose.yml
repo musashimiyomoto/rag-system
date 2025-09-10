@@ -1,5 +1,5 @@
 x-prefect: &prefect
-  image: prefecthq/prefect:3.4-python3.11
+  image: ${PREFECT_IMAGE}
   env_file:
     - .env
   depends_on:
@@ -31,7 +31,7 @@ services:
     command: [ "bash", "/docker-entrypoint.sh", "gunicorn", "main:app" ]
 
   postgres:
-    image: postgres:14
+    image: ${POSTGRES_IMAGE}
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -53,7 +53,7 @@ services:
       retries: 40
 
   redis:
-    image: redis:7.2.4
+    image: ${REDIS_IMAGE}
     restart: always
     healthcheck:
       test:
@@ -69,7 +69,7 @@ services:
       - redis_data:/data
 
   chroma:
-    image: chromadb/chroma:1.0.20
+    image: ${CHROMA_IMAGE}
     restart: always
     healthcheck:
       test:

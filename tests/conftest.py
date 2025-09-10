@@ -17,11 +17,12 @@ from api.dependencies import agent, db
 from db.models import Base
 from enums import LLMName
 from main import app
+from settings import postgres_settings
 
 
 @pytest_asyncio.fixture(scope="session")
 async def postgres_container() -> AsyncGenerator[PostgresContainer, None]:
-    with PostgresContainer() as postgres:
+    with PostgresContainer(image=postgres_settings.image, driver="asyncpg") as postgres:
         yield postgres
 
 
@@ -30,9 +31,7 @@ async def test_engine(
     postgres_container: PostgresContainer,
 ) -> AsyncGenerator[AsyncEngine, None]:
     engine = create_async_engine(
-        url=postgres_container.get_connection_url().replace(
-            "postgresql+psycopg2://", "postgresql+asyncpg://", 1
-        ),
+        url=postgres_container.get_connection_url(),
         echo=False,
     )
 

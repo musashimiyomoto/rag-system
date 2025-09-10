@@ -1,6 +1,6 @@
 import pytest
 
-from tests.test_api.base import BaseTestCase
+from tests.base import BaseTestCase
 
 
 class TestHealthLiveness(BaseTestCase):

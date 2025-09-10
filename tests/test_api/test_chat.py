@@ -1,8 +1,8 @@
 import pytest
 
 from enums import LLMName
+from tests.base import BaseTestCase
 from tests.factories import DocumentFactory, SessionFactory
-from tests.test_api.base import BaseTestCase
 
 
 class TestChatStream(BaseTestCase):

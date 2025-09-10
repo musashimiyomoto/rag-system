@@ -7,8 +7,8 @@ import pytest_asyncio
 from fastapi import UploadFile
 
 from enums import DocumentStatus, DocumentType
+from tests.base import BaseTestCase
 from tests.factories import DocumentFactory, SessionFactory
-from tests.test_api.base import BaseTestCase
 
 
 class TestCreateDocument(BaseTestCase):

@@ -5,7 +5,7 @@ from enums import Role
 from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
-class MessageFactory(AsyncSQLAlchemyModelFactory):
+class MessageFactory(AsyncSQLAlchemyModelFactory[Message]):
     class Meta:  # type: ignore
         model = Message
 

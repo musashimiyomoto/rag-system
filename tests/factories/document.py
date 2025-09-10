@@ -5,7 +5,7 @@ from enums import DocumentStatus, DocumentType
 from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
-class DocumentFactory(AsyncSQLAlchemyModelFactory):
+class DocumentFactory(AsyncSQLAlchemyModelFactory[Document]):
     class Meta:  # type: ignore
         model = Document
 

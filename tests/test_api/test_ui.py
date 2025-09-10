@@ -2,8 +2,8 @@ from http import HTTPStatus
 
 import pytest
 
+from tests.base import BaseTestCase
 from tests.factories import DocumentFactory
-from tests.test_api.base import BaseTestCase
 
 
 class TestMainPage(BaseTestCase):

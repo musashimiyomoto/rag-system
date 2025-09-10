@@ -4,7 +4,7 @@ from db.models import Session
 from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
-class SessionFactory(AsyncSQLAlchemyModelFactory):
+class SessionFactory(AsyncSQLAlchemyModelFactory[Session]):
     class Meta:  # type: ignore
         model = Session
 
