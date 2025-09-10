@@ -185,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) {
                 if (modal) modal.remove();
 
-                showMessage('Document deleted successfully!', 'success');
                 loadDocuments();
             } else {
                 const error = await response.json();
