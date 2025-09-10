@@ -3,6 +3,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('file-input');
     const fileInputText = document.querySelector('.file-input-text');
     const documentsList = document.getElementById('documents-list');
+    const uploadBtn = document.querySelector('.upload-btn');
+
+    function setButtonLoading(button, isLoading) {
+        if (isLoading) {
+            button.disabled = true;
+            button.classList.add('btn-loading');
+            const loadingText = button.getAttribute('data-loading-text') || 'Loading...';
+            button.setAttribute('data-original-text', button.textContent);
+            button.textContent = loadingText;
+        } else {
+            button.disabled = false;
+            button.classList.remove('btn-loading');
+            const originalText = button.getAttribute('data-original-text') || button.textContent;
+            button.textContent = originalText;
+        }
+    }
 
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
@@ -14,6 +30,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     uploadForm.addEventListener('submit', async function(e) {
         e.preventDefault();
+
+        setButtonLoading(uploadBtn, true);
 
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
@@ -36,6 +54,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             showMessage(`Upload failed: ${error.message}`, 'error');
+        } finally {
+            setButtonLoading(uploadBtn, false);
         }
     });
 
@@ -73,10 +93,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="document-actions">
                         <span class="status status-${doc.status.toLowerCase()}">${doc.status}</span>
                         ${doc.status === 'completed' ?
-                            `<button class="chat-btn" onclick="event.stopPropagation(); openChat(${doc.id})">Chat</button>` :
+                            `<button class="chat-btn" onclick="event.stopPropagation(); openChat(${doc.id})" data-loading-text="Opening...">Chat</button>` :
                             `<button class="chat-btn disabled" disabled title="Document must be completed to start chat">Chat</button>`
                         }
-                        <button class="delete-doc-btn" onclick="event.stopPropagation(); showDeleteDocumentConfirmation(${doc.id}, '${doc.name}')" title="Delete document">🗑️</button>
+                        <button class="delete-doc-btn" onclick="event.stopPropagation(); showDeleteDocumentConfirmation(${doc.id}, '${doc.name}')" title="Delete document" data-loading-text="Deleting...">🗑️</button>
                     </div>
                 </div>
             `).join('');
@@ -86,7 +106,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.openChat = function(documentId) {
-        window.location.href = `/chat/${documentId}`;
+        const chatBtn = event.target;
+        setButtonLoading(chatBtn, true);
+        
+        setTimeout(() => {
+            window.location.href = `/chat/${documentId}`;
+        }, 500);
     };
 
     window.showDocumentDetails = function(documentId, name, status, summary) {
@@ -145,13 +170,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function deleteDocument(documentId) {
+        const modal = document.querySelector('.modal-overlay');
+        const confirmBtn = modal?.querySelector('.confirm-delete-btn');
+        
+        if (confirmBtn) {
+            setButtonLoading(confirmBtn, true);
+        }
+
         try {
             const response = await fetch(`/document/${documentId}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                const modal = document.querySelector('.modal-overlay');
                 if (modal) modal.remove();
 
                 showMessage('Document deleted successfully!', 'success');
@@ -163,6 +194,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error deleting document:', error);
             showMessage(`Error deleting document: ${error.message}`, 'error');
+        } finally {
+            if (confirmBtn) {
+                setButtonLoading(confirmBtn, false);
+            }
         }
     }
 

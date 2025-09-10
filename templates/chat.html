@@ -11,10 +11,13 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <h3>Sessions</h3>
-                <button id="new-session-btn" class="new-session-btn">New Session</button>
+                <button id="new-session-btn" class="new-session-btn" data-loading-text="Creating...">New Session</button>
             </div>
             <div id="sessions-list" class="sessions-list">
                 <div class="loading">Loading sessions...</div>
+            </div>
+            <div class="sidebar-footer">
+                <button id="delete-session-btn" class="delete-session-btn" title="Delete current session" style="display: none;" data-loading-text="Deleting...">🗑️ Delete Session</button>
             </div>
         </div>
 
@@ -39,7 +42,6 @@
                             <option value="github:xai/grok-3-mini">Grok-3 Mini</option>
                         </select>
                     </div>
-                    <button id="delete-session-btn" class="delete-session-btn" title="Delete current session" style="display: none;">🗑️</button>
                 </div>
             </div>
 

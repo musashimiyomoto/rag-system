@@ -18,6 +18,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     deleteSessionBtn.addEventListener('click', showDeleteConfirmation);
 
+    function setButtonLoading(button, isLoading) {
+        if (isLoading) {
+            button.disabled = true;
+            button.classList.add('btn-loading');
+            const loadingText = button.getAttribute('data-loading-text') || 'Loading...';
+            button.setAttribute('data-original-text', button.textContent);
+            button.textContent = loadingText;
+        } else {
+            button.disabled = false;
+            button.classList.remove('btn-loading');
+            const originalText = button.getAttribute('data-original-text') || button.textContent;
+            button.textContent = originalText;
+        }
+    }
+
     chatForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -128,6 +143,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function createNewSession() {
+        setButtonLoading(newSessionBtn, true);
+        
         try {
             const response = await fetch('/session', {
                 method: 'POST',
@@ -150,6 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             addMessage('Error creating session: ' + error.message, 'agent', true);
+        } finally {
+            setButtonLoading(newSessionBtn, false);
         }
     }
 
@@ -256,13 +275,19 @@ document.addEventListener('DOMContentLoaded', function() {
     async function deleteCurrentSession() {
         if (!currentSessionId) return;
 
+        const modal = document.querySelector('.modal-overlay');
+        const confirmBtn = modal?.querySelector('.confirm-delete-btn');
+        
+        if (confirmBtn) {
+            setButtonLoading(confirmBtn, true);
+        }
+
         try {
             const response = await fetch(`/session/${currentSessionId}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                const modal = document.querySelector('.modal-overlay');
                 if (modal) modal.remove();
 
                 currentSessionId = null;
@@ -279,6 +304,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error deleting session:', error);
             addMessage('Error deleting session: ' + error.message, 'agent', true);
+        } finally {
+            if (confirmBtn) {
+                setButtonLoading(confirmBtn, false);
+            }
         }
     }
 
