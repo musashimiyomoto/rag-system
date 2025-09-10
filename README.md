@@ -26,17 +26,16 @@ make help
 ### Docker Run
 
 1. **Create .env file**:
-   **Step 1**: Create the `.env` file:
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+cp .env.example .env
+```
 
-   **Step 2**: Add your API keys to the `.env` file. Open the file in a text editor and add the required variables in the format `KEY=value`. For example:
-   ```bash
-   CORE_OPENAI_API_KEY=your_openai_api_key_here
-   CORE_GOOGLE_API_KEY=your_google_api_key_here
-   CORE_GITHUB_API_KEY=your_github_api_key_here
-   ```
+Add your API keys to the `.env` file. Open the file in a text editor and add the required variables in the format `KEY=value`. For example:
+```bash
+CORE_OPENAI_API_KEY=your_openai_api_key_here
+CORE_GOOGLE_API_KEY=your_google_api_key_here
+CORE_GITHUB_API_KEY=your_github_api_key_here
+```
 
 2. **Build and start the application**:
 ```bash
