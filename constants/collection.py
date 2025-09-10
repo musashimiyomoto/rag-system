@@ -1,0 +1,1 @@
+SUMMART_COLLECTION = "summary"
