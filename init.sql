@@ -1,0 +1,3 @@
+CREATE USER prefect WITH PASSWORD 'prefect';
+CREATE DATABASE prefect;
+GRANT ALL PRIVILEGES ON DATABASE prefect TO prefect;
