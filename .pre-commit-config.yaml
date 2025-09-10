@@ -9,7 +9,7 @@ repos:
         args:
           [
             --scopes,
-            "ai,api,db,settings,flows,settings,tests,usecases",
+            "ai,api,db,settings,flows,settings,tests,usecases,utils",
             --strict,
             feat,
             fix,
