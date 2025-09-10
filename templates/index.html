@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG System</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RAG System</h1>
+        </header>
+
+        <main>
+            <section class="upload-section">
+                <h2>Upload Document</h2>
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="file-input" name="file" accept=".pdf,.txt" required>
+                        <label for="file-input" class="file-input-label">
+                            <span class="file-input-text">Choose file</span>
+                            <span class="file-input-button">Browse</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="upload-btn">Upload</button>
+                </form>
+            </section>
+
+            <section class="documents-section">
+                <h2>Documents</h2>
+                <div id="documents-list" class="documents-list">
+                    <div class="loading">Loading documents...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
