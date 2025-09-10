@@ -67,8 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="document-info">
                         <div class="document-name">${doc.name}</div>
                         <div class="document-meta">
-                            Type: ${doc.type} |
-                            Created: ${new Date(doc.created_at).toLocaleDateString()}
+                            Type: ${doc.type} | Created: ${new Date(doc.created_at).toLocaleDateString()}
                         </div>
                     </div>
                     <div class="document-actions">

@@ -53,9 +53,9 @@ make stop
 ```
 
 4. **Access the API documentation**:
-   - Swagger UI: http://localhost:8000/docs
+   - Swagger UI: http://localhost:5000/docs
    - Prefect UI: http://localhost:4200
-   - UI RAG Application: http://localhost:8000
+   - UI RAG Application: http://localhost:5000
 
 ## Development
 

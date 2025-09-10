@@ -105,24 +105,44 @@ h2 {
 
 .documents-list {
     display: grid;
-    gap: 15px;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .document-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .document-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .documents-list {
+        gap: 15px;
+    }
 }
 
 .document-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 15px;
+    padding: 20px;
     border: 1px solid #e9ecef;
-    border-radius: 6px;
+    border-radius: 12px;
     transition: all 0.3s ease;
     cursor: pointer;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .document-item:hover {
     border-color: #3498db;
-    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
     background-color: #f8f9fa;
+    transform: translateY(-2px);
 }
 
 .document-info {
@@ -130,8 +150,10 @@ h2 {
 }
 
 .document-name {
-    font-weight: 500;
-    margin-bottom: 5px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+    color: #2c3e50;
 }
 
 .document-meta {
@@ -139,12 +161,20 @@ h2 {
     color: #666;
 }
 
+.document-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
 .status {
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 12px;
+    border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 500;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .status-created {
@@ -172,14 +202,18 @@ h2 {
     color: white;
     border: none;
     padding: 8px 16px;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 0.9rem;
-    transition: background-color 0.3s ease;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 .chat-btn:hover {
     background-color: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
 }
 
 .chat-btn.disabled {
@@ -197,18 +231,21 @@ h2 {
     color: white;
     border: none;
     padding: 8px 12px;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
-    margin-left: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    min-width: 40px;
+    height: 36px;
 }
 
 .delete-doc-btn:hover {
     background-color: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
 }
 
 .chat-container {
