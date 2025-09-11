@@ -9,7 +9,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from prefect import flow, task
 
 from ai.summarize import summarize
-from constants import SUMMART_COLLECTION
 from db.repositories import DocumentRepository
 from db.sessions import async_session
 from enums.document import DocumentStatus
@@ -45,10 +44,13 @@ async def deploy_process_document_flow(document_id: int) -> UUID:
 
 
 async def get_or_create_collection(name: str) -> AsyncCollection:
-    """Get the collection.
+    """Get or create a ChromaDB collection.
 
     Args:
         name: The collection name.
+
+    Returns:
+        The ChromaDB collection instance.
 
     """
     client = await chromadb.AsyncHttpClient(
@@ -56,6 +58,53 @@ async def get_or_create_collection(name: str) -> AsyncCollection:
         port=chroma_settings.port,
     )
     return await client.get_or_create_collection(name=name)
+
+
+async def get_document_filepath(document_id: int) -> tuple[str, Path]:
+    """Get document filepath and save file from Redis to local storage.
+
+    Args:
+        document_id: The document ID.
+
+    Returns:
+        A tuple containing the collection name and file path.
+
+    Raises:
+        ValueError: If document is not found or file is not available in Redis.
+
+    """
+    repository = DocumentRepository()
+
+    async with async_session() as session:
+        document = await repository.update_by(
+            session=session,
+            id=document_id,
+            data={"status": DocumentStatus.PROCESSED},
+        )
+        if not document:
+            msg = f"Document №{document_id} not found!"
+            raise ValueError(msg)
+
+        collection_name = document.collection
+
+        file = await redis_client.get(name=collection_name)
+        if not file:
+            await repository.update_by(
+                session=session,
+                id=document_id,
+                data={"status": DocumentStatus.FAILED},
+            )
+            msg = f"For document №{document_id} not found file!"
+            raise ValueError(msg)
+
+    filepath = DOCUMENT_DIRECTORY / f"{collection_name}.{document.type.value.lower()}"
+
+    with filepath.open("wb") as buffer:
+        buffer.write(base64.b64decode(file.encode("utf-8")))
+
+    await redis_client.delete(collection_name)
+
+    return collection_name, filepath
 
 
 def _generate_chunks(filepath: Path, chunk_size: int = 512) -> list[str]:
@@ -74,16 +123,39 @@ def _generate_chunks(filepath: Path, chunk_size: int = 512) -> list[str]:
     ).split_text(text=textract.process(filename=filepath.as_posix()).decode("utf-8"))
 
 
-@task(name="Index Document")
-async def _index_document(filepath: Path, document_collection: str) -> list[str]:
-    """Index the document.
+@task(name="Complete Processing Document")
+async def _complete_processing_document(document_id: int, summary: str) -> None:
+    """Complete document processing by updating status and summary.
 
     Args:
-        filepath: The file path.
-        document_collection: The document collection name.
+        document_id: The document ID.
+        summary: The document summary.
 
     """
-    collection = await get_or_create_collection(name=document_collection)
+    repository = DocumentRepository()
+
+    async with async_session() as session:
+        await repository.update_by(
+            session=session,
+            id=document_id,
+            data={"status": DocumentStatus.COMPLETED, "summary": summary},
+        )
+
+
+@task(name="Index Document")
+async def _index_document(document_id: int) -> list[str]:
+    """Index the document by splitting it into chunks and storing in ChromaDB.
+
+    Args:
+        document_id: The document ID.
+
+    Returns:
+        List of document chunks.
+
+    """
+    collection_name, filepath = await get_document_filepath(document_id=document_id)
+
+    collection = await get_or_create_collection(name=collection_name)
 
     chunks = _generate_chunks(filepath=filepath)
 
@@ -92,15 +164,20 @@ async def _index_document(filepath: Path, document_collection: str) -> list[str]
         documents=chunks,
     )
 
+    filepath.unlink()
+
     return chunks
 
 
 @task(name="Summarize Document")
 async def _summarize_document(chunks: list[str]) -> str:
-    """Summarize the document.
+    """Summarize the document by processing all chunks.
 
     Args:
-        chunks: The chunks.
+        chunks: The document chunks to summarize.
+
+    Returns:
+        The final document summary.
 
     """
     summary = ""
@@ -110,72 +187,21 @@ async def _summarize_document(chunks: list[str]) -> str:
     return await summarize(text=summary)
 
 
-@task(name="Index Summary")
-async def _index_summary(summary: str, document_collection: str) -> None:
-    """Index the summary.
-
-    Args:
-        summary: The summary.
-        document_collection: The document collection.
-
-    """
-    collection = await get_or_create_collection(name=SUMMART_COLLECTION)
-
-    await collection.add(ids=[document_collection], documents=[summary])
-
-
 @flow(name="Process Document", timeout_seconds=2 * 3600, retries=3)
 async def process_document(document_id: int) -> None:
-    """Process the document flow.
+    """Process the document flow: index, summarize and complete processing.
+
+    This flow handles the complete document processing pipeline:
+    1. Index the document by splitting into chunks and storing in ChromaDB
+    2. Summarize the document content
+    3. Mark the document as completed with the summary
 
     Args:
-        document_id: The document ID.
+        document_id: The document ID to process.
 
     """
-    repository = DocumentRepository()
+    chunks = await _index_document(document_id=document_id)
 
-    async with async_session() as session:
-        document = await repository.update_by(
-            session=session,
-            id=document_id,
-            data={"status": DocumentStatus.PROCESSED},
-        )
-        if not document:
-            await repository.update_by(
-                session=session,
-                id=document_id,
-                data={"status": DocumentStatus.FAILED},
-            )
-            return
+    summary = await _summarize_document(chunks=chunks)
 
-        file = await redis_client.get(name=document.collection)
-        if not file:
-            await repository.update_by(
-                session=session,
-                id=document_id,
-                data={"status": DocumentStatus.FAILED},
-            )
-            return
-
-        filepath = (
-            DOCUMENT_DIRECTORY / f"{document.collection}.{document.type.value.lower()}"
-        )
-        with filepath.open("wb") as buffer:
-            buffer.write(base64.b64decode(file.encode("utf-8")))
-
-        await redis_client.delete(document.collection)
-
-        chunks = await _index_document(
-            filepath=filepath,
-            document_collection=document.collection,
-        )
-
-        summary = await _summarize_document(chunks=chunks)
-
-        await _index_summary(summary=summary, document_collection=document.collection)
-
-        await repository.update_by(
-            session=session,
-            id=document_id,
-            data={"status": DocumentStatus.COMPLETED, "summary": summary},
-        )
+    await _complete_processing_document(document_id=document_id, summary=summary)

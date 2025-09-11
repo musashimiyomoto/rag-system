@@ -1,1 +1,0 @@
-SUMMART_COLLECTION = "summary"

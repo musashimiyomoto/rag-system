@@ -1,5 +1,5 @@
 import io
-from collections.abc import AsyncGenerator
+from typing import AsyncGenerator
 from unittest import mock
 
 import pytest
