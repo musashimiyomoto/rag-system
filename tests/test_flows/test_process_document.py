@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import AsyncGenerator
 from unittest import mock
 
@@ -46,15 +45,6 @@ class TestIndexDocumentTask(BaseTestCase):
         with mock.patch("flows.process_document.textract.process") as mock_textract:
             mock_textract.return_value = b"Sample document content for testing purposes"
             yield mock_textract
-
-    @pytest_asyncio.fixture(autouse=True)
-    async def _mock_file_operations(self) -> AsyncGenerator[mock.MagicMock, None]:
-        with mock.patch("flows.process_document.DOCUMENT_DIRECTORY") as mock_dir:
-            mock_file_path = Path("/documents/test_document.pdf")
-            mock_dir.__truediv__.return_value = mock_file_path
-
-            with mock.patch("builtins.open", mock.mock_open()) as mock_file:
-                yield mock_file
 
     @pytest.mark.asyncio
     async def test_success(self, test_session: AsyncSession):
