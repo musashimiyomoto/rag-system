@@ -16,14 +16,14 @@ from enums import LLMName
 from settings.core import core_settings
 
 
-async def summarize(text: str) -> str:
-    """Summarize the document.
+async def summarize(texts: list[str]) -> str:
+    """Summarize the texts.
 
     Args:
-        text: The text to summarize.
+        texts: The texts to summarize.
 
     Returns:
-        The summarized document.
+        The summarized texts.
 
     Raises:
         ClientError: If the client error occurs.
@@ -40,9 +40,11 @@ async def summarize(text: str) -> str:
         raise ValueError(msg)
 
     messages: list[ModelMessage] = [
-        ModelRequest(parts=[SystemPromptPart(content=SUMMARY_PROMPT)]),
-        ModelRequest(parts=[UserPromptPart(content=text)]),
+        ModelRequest(parts=[SystemPromptPart(content=SUMMARY_PROMPT)])
     ]
+    messages.extend(
+        [ModelRequest(parts=[UserPromptPart(content=text)]) for text in texts]
+    )
 
     try:
         response = await model.request(

@@ -35,6 +35,6 @@ def generate_agent(llm: LLMName) -> Agent[Dependencies, str]:
         if not document:
             return SYSTEM_PROMPT
 
-        return SYSTEM_PROMPT + f"\n\nDocument Summary: {document.summary}"
+        return SYSTEM_PROMPT.format(document_summary=document.summary)
 
     return agent

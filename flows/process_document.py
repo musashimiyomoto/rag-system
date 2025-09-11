@@ -180,11 +180,7 @@ async def _summarize_document(chunks: list[str]) -> str:
         The final document summary.
 
     """
-    summary = ""
-    for chunk in chunks:
-        summary += await summarize(text=chunk)
-
-    return await summarize(text=summary)
+    return await summarize(texts=chunks)
 
 
 @flow(name="Process Document", timeout_seconds=2 * 3600, retries=3)
