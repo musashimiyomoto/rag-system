@@ -1,3 +1,4 @@
+import logfire
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -5,9 +6,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from api.routers import chat, document, health, session
+from db.sessions import async_engine
 from exceptions import BaseError
 
 app = FastAPI()
+
+
+logger = logfire.configure()
+logfire.instrument_fastapi(app)
+logfire.instrument_sqlalchemy(engine=async_engine)
+logfire.instrument_redis()
+logfire.instrument_pydantic_ai()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
