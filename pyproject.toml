@@ -8,18 +8,18 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "3.11.*"
-alembic = "1.14.1"
 fastapi = { extras = ["standard"], version = "0.115.7" }
 gunicorn = { extras = ["gevent"], version = "23.0.0" }
 redis = { extras = ["hiredis"], version = "6.1.0" }
-pydantic-ai-slim = { extras = ["google", "openai"], version = "1.0.1" }
+pydantic-ai-slim = { extras = ["google", "openai"], version = "1.0.3" }
+logfire = { extras = ["fastapi", "sqlalchemy", "redis"], version = "4.6.0" }
+alembic = "1.14.1"
 pydantic = "2.11.7"
 pydantic-settings = "2.10.1"
 sqlalchemy = "2.0.37"
 asyncpg = "0.28.0"
 chromadb = "1.0.20"
 prefect = "3.4.13"
-logfire = {extras = ["fastapi", "sqlalchemy", "redis"], version = "4.6.0"}
 textract = "1.6.5"
 langchain-text-splitters = "0.3.11"
 python-multipart = "0.0.20"

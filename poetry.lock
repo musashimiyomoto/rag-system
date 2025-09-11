@@ -4194,25 +4194,25 @@ timezone = ["tzdata"]
 
 [[package]]
 name = "pydantic-ai-slim"
-version = "1.0.1"
+version = "1.0.3"
 description = "Agent Framework / shim to use Pydantic with LLMs, slim package"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "pydantic_ai_slim-1.0.1-py3-none-any.whl", hash = "sha256:a624e6337af3a49650d0536c02e52f34a1ca982c6cc3d3aa0d19ac62343fbd30"},
-    {file = "pydantic_ai_slim-1.0.1.tar.gz", hash = "sha256:c452b0df71d3b0df5de3b15ca8c3d01b7e2af3b77a737ea2c1abf55a9ea30f07"},
+    {file = "pydantic_ai_slim-1.0.3-py3-none-any.whl", hash = "sha256:6b017a2ab04418c2c9a32ae7cface9d4c3f3aee76da00f49d040d51f6ae0bbb1"},
+    {file = "pydantic_ai_slim-1.0.3.tar.gz", hash = "sha256:5e2d7cf3d880b8847efa53539cd7e1e4f17a5b019c810d2515b80cfb19421245"},
 ]
 
 [package.dependencies]
-genai-prices = ">=0.0.22"
+genai-prices = ">=0.0.23"
 google-genai = {version = ">=1.31.0", optional = true, markers = "extra == \"google\""}
 griffe = ">=1.3.2"
 httpx = ">=0.27"
 openai = {version = ">=1.99.9", optional = true, markers = "extra == \"openai\""}
 opentelemetry-api = ">=1.28.0"
 pydantic = ">=2.10"
-pydantic-graph = "1.0.1"
+pydantic-graph = "1.0.3"
 typing-inspection = ">=0.4.0"
 
 [package.extras]
@@ -4221,15 +4221,16 @@ ag-ui = ["ag-ui-protocol (>=0.1.8)", "starlette (>=0.45.3)"]
 anthropic = ["anthropic (>=0.61.0)"]
 bedrock = ["boto3 (>=1.39.0)"]
 cli = ["argcomplete (>=3.5.0)", "prompt-toolkit (>=3)", "pyperclip (>=1.9.0)", "rich (>=13)"]
-cohere = ["cohere (>=5.16.0)"]
+cohere = ["cohere (>=5.17.0)"]
+dbos = ["dbos (>=1.13.0)"]
 duckduckgo = ["ddgs (>=9.0.0)"]
-evals = ["pydantic-evals (==1.0.1)"]
+evals = ["pydantic-evals (==1.0.3)"]
 google = ["google-genai (>=1.31.0)"]
 groq = ["groq (>=0.25.0)"]
 huggingface = ["huggingface-hub[inference] (>=0.33.5)"]
 logfire = ["logfire[httpx] (>=3.14.1)"]
 mcp = ["mcp (>=1.12.3)"]
-mistral = ["mistralai (>=1.9.2)"]
+mistral = ["mistralai (>=1.9.10)"]
 openai = ["openai (>=1.99.9)"]
 retries = ["tenacity (>=8.2.3)"]
 tavily = ["tavily-python (>=0.5.0)"]
@@ -4374,14 +4375,14 @@ semver = ["semver (>=3.0.2)"]
 
 [[package]]
 name = "pydantic-graph"
-version = "1.0.1"
+version = "1.0.3"
 description = "Graph and state machine library"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "pydantic_graph-1.0.1-py3-none-any.whl", hash = "sha256:342a02fd8c65d35d7cad1f8c6145b10b7d9c81ca36b587d2963afb870570d768"},
-    {file = "pydantic_graph-1.0.1.tar.gz", hash = "sha256:2e709845978234f8d095705adc56a1dc7c571c64f892dc1a1979be9d296da4e4"},
+    {file = "pydantic_graph-1.0.3-py3-none-any.whl", hash = "sha256:5d7af93434a598aaa2087d964705d9e6f03b5e5052ab683f92afa86dbc701a95"},
+    {file = "pydantic_graph-1.0.3.tar.gz", hash = "sha256:b3d3806dc6ec0d487df27deec4afbbab5ddb4f3dba3b80972206fc6dfe656cfb"},
 ]
 
 [package.dependencies]
@@ -6702,4 +6703,4 @@ cffi = ["cffi (>=1.17)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.11.*"
-content-hash = "9120ef2350ae9d9f2c945fbaf679ca6ae8556dcf3b3ede632ea282daf878fa34"
+content-hash = "7e76b43c0728d46d549be70daabd91c0ec640ce59cc0bf87c68d95bdaefb2a82"
