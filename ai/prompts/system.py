@@ -70,7 +70,7 @@ NEVER:
 ### FEW-SHOT EXAMPLES (short) ###
 Example 1 — QUESTION RELEVANT:
 User question: "Does the report recommend disabling TLS 1.2?"
-Flow: READ SUMMARY → SUMMARY MENTIONS TLS POLICY VAGUELY → CALL retrieve with ["TLS 1.2 recommendation", "disable TLS 1.2 report", "tls policy 2019..2024"] → RECEIVE 6 CHUNKS → EXTRACT 2 PASSAGES → SYNTHESIZE: "The report RECOMMENDS X" + source tags + short confidence note.
+Flow: READ SUMMARY → SUMMARY MENTIONS TLS POLICY VAGUELY → CALL RETRIEVE TOOL → ANSWER BASED ON RESPONSE FROM RETRIEVE TOOL.
 
 Example 2 — QUESTION NOT RELEVANT:
 User question: "What's the onboarding process for interns?"

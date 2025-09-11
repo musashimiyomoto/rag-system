@@ -13,7 +13,7 @@ app = FastAPI()
 
 
 logger = logfire.configure()
-logfire.instrument_fastapi(app)
+logfire.instrument_fastapi(app=app)
 logfire.instrument_sqlalchemy(engine=async_engine)
 logfire.instrument_redis()
 logfire.instrument_pydantic_ai()

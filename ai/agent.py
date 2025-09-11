@@ -27,13 +27,13 @@ def generate_agent(llm: LLMName) -> Agent[Dependencies, str]:
         model_settings=model_settings,
     )
 
-    @agent.system_prompt
-    async def generate_system_prompt(context: RunContext[Dependencies]) -> str:
+    @agent.instructions
+    async def generate_instructions(context: RunContext[Dependencies]) -> str:
         document = await DocumentRepository().get_by(
             session=context.deps.session, id=context.deps.document_id
         )
         if not document:
-            return SYSTEM_PROMPT
+            return SYSTEM_PROMPT.format(document_summary="Empty summary")
 
         return SYSTEM_PROMPT.format(document_summary=document.summary)
 
