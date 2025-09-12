@@ -12,7 +12,7 @@ from exceptions import BaseError
 app = FastAPI()
 
 
-logger = logfire.configure()
+logger = logfire.configure(send_to_logfire="if-token-present")
 logfire.instrument_fastapi(app=app)
 logfire.instrument_sqlalchemy(engine=async_engine)
 logfire.instrument_redis()

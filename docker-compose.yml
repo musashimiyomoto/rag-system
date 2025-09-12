@@ -12,6 +12,7 @@ x-prefect: &prefect
 x-app: &app
   build:
     context: .
+  restart: always
   env_file:
     - .env
   depends_on:
@@ -27,7 +28,6 @@ x-app: &app
 services:
   api:
     <<: *app
-    restart: always
     ports:
       - "5000:5000"
     command: [ "bash", "/docker-entrypoint.sh", "gunicorn", "main:app" ]
