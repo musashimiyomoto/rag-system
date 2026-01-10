@@ -1,5 +1,6 @@
 DOCKER_COMPOSE_FILE := docker-compose.yml
 POETRY := poetry
+PYTHON_VERSION := 3.11
 
 GREEN := \033[0;32m
 BLUE := \033[0;34m
@@ -12,6 +13,14 @@ help:
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 install:
+	@echo "$(BLUE)Installing poetry...$(NC)"
+	curl -sSL https://install.python-poetry.org | python3 -
+	@echo "$(GREEN)Poetry installed!$(NC)"
+
+	@echo "$(BLUE)Installing python $(PYTHON_VERSION)...$(NC)"
+	$(POETRY) python install $(PYTHON_VERSION) --reinstall
+	@echo "$(GREEN)Python $(PYTHON_VERSION) installed!$(NC)"
+
 	@echo "$(BLUE)Installing dependencies...$(NC)"
 	$(POETRY) install --with dev,test
 	@echo "$(GREEN)Dependencies installed!$(NC)"
