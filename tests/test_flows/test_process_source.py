@@ -5,27 +5,18 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from enums import SourceStatus
+from enums import SourceStatus, SourceType
 from flows.process_source import (
     _complete_processing_source,
+    _extract_text,
     _index_source,
     _summarize_source,
 )
 from tests.base import BaseTestCase
-from tests.factories import SourceFactory
+from tests.factories import SourceFactory, SourceFileFactory
 
 
 class TestIndexSourceTask(BaseTestCase):
-    @pytest_asyncio.fixture(autouse=True)
-    async def _mock_redis(self) -> AsyncGenerator[mock.MagicMock, None]:
-        async def mock_get(name: str) -> str:
-            return "bW9ja2Jhc2U2NGNvbnRlbnQ="
-
-        with mock.patch("flows.process_source.redis_client") as mock_redis:
-            mock_redis.get.side_effect = mock_get
-            mock_redis.delete.return_value = None
-            yield mock_redis
-
     @pytest_asyncio.fixture(autouse=True)
     async def _mock_chromadb(self) -> AsyncGenerator[mock.MagicMock, None]:
         mock_collection = mock.AsyncMock()
@@ -40,15 +31,14 @@ class TestIndexSourceTask(BaseTestCase):
         ):
             yield mock_collection
 
-    @pytest_asyncio.fixture(autouse=True)
-    async def _mock_textract(self) -> AsyncGenerator[mock.MagicMock, None]:
-        with mock.patch("flows.process_source.textract.process") as mock_textract:
-            mock_textract.return_value = b"Sample source content for testing purposes"
-            yield mock_textract
-
     @pytest.mark.asyncio
     async def test_success(self, test_session: AsyncSession):
         source = await SourceFactory.create_async(session=self.session)
+        await SourceFileFactory.create_async(
+            session=self.session,
+            source_id=source.id,
+            content=b"Sample source content for testing purposes",
+        )
         mock_context_manager = mock.AsyncMock()
         mock_context_manager.__aenter__.return_value = test_session
         mock_context_manager.__aexit__.return_value = None
@@ -60,6 +50,47 @@ class TestIndexSourceTask(BaseTestCase):
             assert isinstance(chunks, list)
             assert len(chunks) > 0
             assert all(isinstance(chunk, str) for chunk in chunks)
+
+    @pytest.mark.asyncio
+    async def test_missing_source_file_marks_failed(self, test_session: AsyncSession):
+        source = await SourceFactory.create_async(session=self.session)
+        mock_context_manager = mock.AsyncMock()
+        mock_context_manager.__aenter__.return_value = test_session
+        mock_context_manager.__aexit__.return_value = None
+        mock_async_session = mock.Mock(return_value=mock_context_manager)
+
+        with (
+            mock.patch("flows.process_source.async_session", mock_async_session),
+            pytest.raises(ValueError, match="not found file"),
+        ):
+            await _index_source.fn(source_id=source.id)
+
+        await self.session.refresh(source)
+        assert source.status == SourceStatus.FAILED
+
+
+class TestExtractText(BaseTestCase):
+    @pytest.mark.asyncio
+    async def test_txt(self):
+        text = _extract_text(
+            source_type=SourceType.TXT,
+            content=b"Simple text content",
+        )
+        assert text == "Simple text content"
+
+    @pytest.mark.asyncio
+    async def test_pdf(self):
+        page_1 = mock.Mock()
+        page_1.extract_text.return_value = "First page"
+        page_2 = mock.Mock()
+        page_2.extract_text.return_value = "Second page"
+        mocked_reader = mock.Mock()
+        mocked_reader.pages = [page_1, page_2]
+
+        with mock.patch("flows.process_source.PdfReader", return_value=mocked_reader):
+            text = _extract_text(source_type=SourceType.PDF, content=b"%PDF")
+
+        assert text == "First page\nSecond page"
 
 
 class TestSummarizeSourceTask(BaseTestCase):

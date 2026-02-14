@@ -10,8 +10,8 @@ TestModel = TypeVar("TestModel", bound=object)
 
 
 class AsyncSQLAlchemyModelFactory(
-    factory.alchemy.SQLAlchemyModelFactory,
-    Generic[TestModel],  # ty: ignore[possibly-missing-attribute]
+    factory.alchemy.SQLAlchemyModelFactory,  # ty: ignore[possibly-missing-attribute]
+    Generic[TestModel],
 ):
     class Meta:
         abstract = True

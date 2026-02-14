@@ -1,4 +1,3 @@
-import base64
 import uuid
 from pathlib import Path
 from typing import BinaryIO
@@ -7,7 +6,12 @@ import chromadb
 from prefect.deployments import run_deployment
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.repositories import MessageRepository, SessionRepository, SourceRepository
+from db.repositories import (
+    MessageRepository,
+    SessionRepository,
+    SourceFileRepository,
+    SourceRepository,
+)
 from enums import SourceStatus, SourceType
 from exceptions import (
     SourceNotFoundError,
@@ -17,7 +21,6 @@ from exceptions import (
 from flows import deploy_process_source_flow
 from schemas import SourceResponse
 from settings import chroma_settings, core_settings
-from utils import redis_client
 
 
 class SourceUsecase:
@@ -25,6 +28,7 @@ class SourceUsecase:
         self._message_repository = MessageRepository()
         self._session_repository = SessionRepository()
         self._source_repository = SourceRepository()
+        self._source_file_repository = SourceFileRepository()
 
     def _validate_source(
         self, file_size: int | None, filename: str | None
@@ -70,25 +74,23 @@ class SourceUsecase:
             The created source.
 
         """
-        collection = uuid.uuid4().hex
-
-        file_content = file.read()
-        encoded_content = base64.b64encode(file_content).decode("utf-8")
-        await redis_client.set(name=collection, value=encoded_content)
-
-        return SourceResponse.model_validate(
-            await self._source_repository.create(
-                session=session,
-                data={
-                    "name": filename,
-                    "type": self._validate_source(
-                        file_size=file_size, filename=filename
-                    ),
-                    "status": SourceStatus.CREATED,
-                    "collection": collection,
-                },
-            )
+        source = await self._source_repository.create(
+            session=session,
+            data={
+                "name": filename,
+                "type": self._validate_source(file_size=file_size, filename=filename),
+                "status": SourceStatus.CREATED,
+                "collection": uuid.uuid4().hex,
+                "summary": None,
+            },
         )
+
+        await self._source_file_repository.create(
+            session=session,
+            data={"source_id": source.id, "content": file.read()},
+        )
+
+        return SourceResponse.model_validate(source)
 
     @staticmethod
     async def deploy_process_source_flow(source_id: int) -> None:
@@ -98,7 +100,7 @@ class SourceUsecase:
             source_id: The source ID.
 
         """
-        await run_deployment(name=await deploy_process_source_flow(source_id=source_id))  # type: ignore[arg-type]
+        await run_deployment(name=await deploy_process_source_flow(source_id=source_id))
 
     async def get_sources(self, session: AsyncSession) -> list[SourceResponse]:
         """Get the sources.

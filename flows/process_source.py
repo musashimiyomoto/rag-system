@@ -1,22 +1,17 @@
-import base64
-from pathlib import Path
+from io import BytesIO
 from uuid import UUID
 
 import chromadb
-import textract
 from chromadb.api.models.AsyncCollection import AsyncCollection
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from prefect import flow, task
+from pypdf import PdfReader
 
 from ai.summarize import summarize
-from db.repositories import SourceRepository
+from db.repositories import SourceFileRepository, SourceRepository
 from db.sessions import async_session
-from enums.source import SourceStatus
+from enums.source import SourceStatus, SourceType
 from settings import BASE_PATH, chroma_settings, prefect_settings
-from utils import redis_client
-
-SOURCE_DIRECTORY = Path("sources")
-SOURCE_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
 async def deploy_process_source_flow(source_id: int) -> UUID:
@@ -60,23 +55,24 @@ async def get_or_create_collection(name: str) -> AsyncCollection:
     return await client.get_or_create_collection(name=name)
 
 
-async def get_source_filepath(source_id: int) -> tuple[str, Path]:
-    """Get source filepath and save file from Redis to local storage.
+async def get_source_content(source_id: int) -> tuple[str, SourceType, bytes]:
+    """Get source metadata and binary file content from PostgreSQL.
 
     Args:
         source_id: The source ID.
 
     Returns:
-        A tuple containing the collection name and file path.
+        A tuple containing collection name, source type and binary content.
 
     Raises:
-        ValueError: If source is not found or file is not available in Redis.
+        ValueError: If source or source file is not found.
 
     """
-    repository = SourceRepository()
+    source_repository = SourceRepository()
+    source_file_repository = SourceFileRepository()
 
     async with async_session() as session:
-        source = await repository.update_by(
+        source = await source_repository.update_by(
             session=session,
             id=source_id,
             data={"status": SourceStatus.PROCESSED},
@@ -85,11 +81,12 @@ async def get_source_filepath(source_id: int) -> tuple[str, Path]:
             msg = f"Source №{source_id} not found!"
             raise ValueError(msg)
 
-        collection_name = source.collection
-
-        file = await redis_client.get(name=collection_name)
-        if not file:
-            await repository.update_by(
+        source_file = await source_file_repository.get_by(
+            session=session,
+            source_id=source_id,
+        )
+        if not source_file:
+            await source_repository.update_by(
                 session=session,
                 id=source_id,
                 data={"status": SourceStatus.FAILED},
@@ -97,30 +94,38 @@ async def get_source_filepath(source_id: int) -> tuple[str, Path]:
             msg = f"For source №{source_id} not found file!"
             raise ValueError(msg)
 
-    filepath = SOURCE_DIRECTORY / f"{collection_name}.{source.type.value.lower()}"
-
-    with filepath.open("wb") as buffer:
-        buffer.write(base64.b64decode(file.encode("utf-8")))
-
-    await redis_client.delete(collection_name)
-
-    return collection_name, filepath
+    return source.collection, source.type, source_file.content
 
 
-def _generate_chunks(filepath: Path, chunk_size: int = 512) -> list[str]:
-    """Generate the file chunks.
+def _extract_text(source_type: SourceType, content: bytes) -> str:
+    """Extract UTF-8 text from source bytes without writing to disk.
 
     Args:
-        filepath: The file path.
-        chunk_size: The chunk size.
+        source_type: The source type.
+        content: Raw file content.
 
     Returns:
-        The file chunks.
+        Extracted text.
 
     """
+    if source_type == SourceType.TXT:
+        return content.decode("utf-8", errors="replace")
+
+    if source_type == SourceType.PDF:
+        return "\n".join(
+            page.extract_text() or ""
+            for page in PdfReader(stream=BytesIO(content)).pages
+        )
+
+    msg = f"Unsupported source type: {source_type.value}"
+    raise ValueError(msg)
+
+
+def _generate_chunks(text: str, chunk_size: int = 512) -> list[str]:
+    """Generate chunks from extracted text."""
     return RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=0
-    ).split_text(text=textract.process(filename=filepath.as_posix()).decode("utf-8"))
+    ).split_text(text=text)
 
 
 @task(name="Complete Processing Source")
@@ -153,18 +158,17 @@ async def _index_source(source_id: int) -> list[str]:
         List of source chunks.
 
     """
-    collection_name, filepath = await get_source_filepath(source_id=source_id)
+    collection_name, source_type, content = await get_source_content(
+        source_id=source_id
+    )
 
     collection = await get_or_create_collection(name=collection_name)
 
-    chunks = _generate_chunks(filepath=filepath)
-
-    await collection.add(
-        ids=[str(i) for i in range(len(chunks))],
-        documents=chunks,
+    chunks = _generate_chunks(
+        text=_extract_text(source_type=source_type, content=content)
     )
 
-    filepath.unlink()
+    await collection.add(ids=[str(i) for i in range(len(chunks))], documents=chunks)
 
     return chunks
 

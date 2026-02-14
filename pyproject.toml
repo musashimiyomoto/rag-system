@@ -20,7 +20,7 @@ sqlalchemy = "2.0.37"
 asyncpg = "0.28.0"
 chromadb = "1.0.20"
 prefect = "3.6.17"
-textract = "1.6.5"
+pypdf = "5.6.0"
 langchain-text-splitters = "0.3.11"
 python-multipart = "0.0.20"
 

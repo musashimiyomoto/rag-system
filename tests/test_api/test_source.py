@@ -5,7 +5,9 @@ from unittest import mock
 import pytest
 import pytest_asyncio
 from fastapi import UploadFile
+from sqlalchemy import select
 
+from db.models import SourceFile
 from enums import SourceStatus, SourceType
 from tests.base import BaseTestCase
 from tests.factories import SessionFactory, SourceFactory
@@ -13,15 +15,6 @@ from tests.factories import SessionFactory, SourceFactory
 
 class TestCreateSource(BaseTestCase):
     url = "/source"
-
-    @pytest_asyncio.fixture(autouse=True)
-    async def _mock_redis(self) -> AsyncGenerator[mock.MagicMock, None]:
-        async def mock_set(name: str, value: str) -> None:
-            return None
-
-        with mock.patch("usecases.source.redis_client") as mock_redis:
-            mock_redis.set.side_effect = mock_set
-            yield mock_redis
 
     @pytest_asyncio.fixture(autouse=True)
     async def _mock_prefect_deployment(self) -> AsyncGenerator[mock.MagicMock, None]:
@@ -57,6 +50,15 @@ class TestCreateSource(BaseTestCase):
         assert data["collection"] is not None
         assert data["created_at"] is not None
         assert data["updated_at"] is not None
+
+        source_file = (
+            await self.session.execute(
+                select(SourceFile).where(SourceFile.source_id == data["id"])
+            )
+        ).scalar_one_or_none()
+
+        assert source_file is not None
+        assert source_file.content == file_content
 
 
 class TestGetSources(BaseTestCase):
