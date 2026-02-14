@@ -1,7 +1,7 @@
 import pytest
 
 from tests.base import BaseTestCase
-from tests.factories import SessionFactory, SourceFactory
+from tests.factories import SessionFactory, SessionSourceFactory, SourceFactory
 
 
 class TestChatStream(BaseTestCase):
@@ -10,8 +10,9 @@ class TestChatStream(BaseTestCase):
     @pytest.mark.asyncio
     async def test_ok(self) -> None:
         source = await SourceFactory.create_async(session=self.session)
-        session = await SessionFactory.create_async(
-            session=self.session, source_id=source.id
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
         )
         data = {"message": "Hello, how are you?", "session_id": session.id}
 

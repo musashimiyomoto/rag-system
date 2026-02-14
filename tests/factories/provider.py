@@ -3,7 +3,7 @@ from enums import ProviderName
 from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
-class ProviderFactory(AsyncSQLAlchemyModelFactory[Provider]):
+class ProviderFactory(AsyncSQLAlchemyModelFactory):
     class Meta:
         model = Provider
 

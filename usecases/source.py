@@ -7,13 +7,13 @@ from prefect.deployments import run_deployment
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.repositories import (
-    MessageRepository,
-    SessionRepository,
+    SessionSourceRepository,
     SourceFileRepository,
     SourceRepository,
 )
 from enums import SourceStatus, SourceType
 from exceptions import (
+    SourceConflictError,
     SourceNotFoundError,
     SourceNotSupportedError,
     SourceTooLargeError,
@@ -25,8 +25,7 @@ from settings import chroma_settings, core_settings
 
 class SourceUsecase:
     def __init__(self):
-        self._message_repository = MessageRepository()
-        self._session_repository = SessionRepository()
+        self._session_source_repository = SessionSourceRepository()
         self._source_repository = SourceRepository()
         self._source_file_repository = SourceFileRepository()
 
@@ -148,6 +147,11 @@ class SourceUsecase:
         if not source:
             raise SourceNotFoundError
 
+        if await self._session_source_repository.get_by(session=session, source_id=id):
+            raise SourceConflictError(
+                message="Source is used by one or more sessions and cannot be deleted"
+            )
+
         chroma_client = await chromadb.AsyncHttpClient(
             host=chroma_settings.host,
             port=chroma_settings.port,
@@ -156,14 +160,9 @@ class SourceUsecase:
         if await chroma_client.get_or_create_collection(name=source.collection):
             await chroma_client.delete_collection(name=source.collection)
 
-        for chat_session in await self._session_repository.get_all(
-            session=session, source_id=id
-        ):
-            await self._message_repository.delete_all(
-                session=session, session_id=chat_session.id
-            )
-            await self._session_repository.delete_by(
-                session=session, id=chat_session.id
-            )
+        source_index = await chroma_client.get_or_create_collection(
+            name=core_settings.sources_index_collection
+        )
+        await source_index.delete(ids=[f"source-{id}"])
 
         await self._source_repository.delete_by(session=session, id=id)

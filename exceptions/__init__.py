@@ -6,8 +6,13 @@ from exceptions.provider import (
     ProviderUpstreamError,
     ProviderValidationError,
 )
-from exceptions.session import SessionNotFoundError
+from exceptions.session import (
+    SessionConflictError,
+    SessionNotFoundError,
+    SessionValidationError,
+)
 from exceptions.source import (
+    SourceConflictError,
     SourceNotFoundError,
     SourceNotSupportedError,
     SourceTooLargeError,
@@ -16,9 +21,12 @@ from exceptions.source import (
 __all__ = [
     "BaseError",
     "SourceNotFoundError",
+    "SourceConflictError",
     "SourceNotSupportedError",
     "SourceTooLargeError",
     "SessionNotFoundError",
+    "SessionValidationError",
+    "SessionConflictError",
     "ProviderNotFoundError",
     "ProviderConflictError",
     "ProviderValidationError",

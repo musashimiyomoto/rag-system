@@ -17,7 +17,7 @@ logfire.instrument_redis()
 logfire.instrument_pydantic_ai()
 
 app.add_middleware(
-    CORSMiddleware,  # ty: ignore[invalid-argument-type]
+    middleware_class=CORSMiddleware,  # ty: ignore[invalid-argument-type]
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],

@@ -1,4 +1,5 @@
 import io
+from http import HTTPStatus
 from typing import AsyncGenerator
 from unittest import mock
 
@@ -10,7 +11,7 @@ from sqlalchemy import select
 from db.models import SourceFile
 from enums import SourceStatus, SourceType
 from tests.base import BaseTestCase
-from tests.factories import SessionFactory, SourceFactory
+from tests.factories import SessionFactory, SessionSourceFactory, SourceFactory
 
 
 class TestCreateSource(BaseTestCase):
@@ -103,9 +104,15 @@ class TestGetSessionsForSource(BaseTestCase):
     async def test_ok(self) -> None:
         session_count = 2
         source = await SourceFactory.create_async(session=self.session)
-        [
-            await SessionFactory.create_async(session=self.session, source_id=source.id)
+        sessions = [
+            await SessionFactory.create_async(session=self.session)
             for _ in range(session_count)
+        ]
+        [
+            await SessionSourceFactory.create_async(
+                session=self.session, session_id=session.id, source_id=source.id
+            )
+            for session in sessions
         ]
 
         response = await self.client.get(url=self.url.format(source_id=source.id))
@@ -120,12 +127,12 @@ class TestDeleteSource(BaseTestCase):
 
     @pytest_asyncio.fixture(autouse=True)
     async def _mock_chroma(self) -> AsyncGenerator[mock.MagicMock, None]:
-        async def mock_delete_collection(name: str) -> None:
-            return None
+        mock_client = mock.AsyncMock()
+        mock_client.get_or_create_collection.return_value = mock.AsyncMock()
+        mock_client.delete_collection.return_value = None
 
-        with mock.patch("chromadb.AsyncHttpClient") as mock_chroma:
-            mock_chroma.delete_collection.side_effect = mock_delete_collection
-            yield mock_chroma
+        with mock.patch("chromadb.AsyncHttpClient", return_value=mock_client):
+            yield mock_client
 
     @pytest.mark.asyncio
     async def test_ok(self) -> None:
@@ -134,3 +141,15 @@ class TestDeleteSource(BaseTestCase):
         response = await self.client.delete(url=self.url.format(id=source.id))
 
         await self.assert_response_ok(response=response)
+
+    @pytest.mark.asyncio
+    async def test_source_used_in_session_returns_409(self) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        chat_session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=chat_session.id, source_id=source.id
+        )
+
+        response = await self.client.delete(url=self.url.format(id=source.id))
+
+        assert response.status_code == HTTPStatus.CONFLICT

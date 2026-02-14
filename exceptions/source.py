@@ -28,3 +28,12 @@ class SourceNotFoundError(BaseError):
         status_code: HTTPStatus = HTTPStatus.NOT_FOUND,
     ):
         super().__init__(message=message, status_code=status_code)
+
+
+class SourceConflictError(BaseError):
+    def __init__(
+        self,
+        message: str = "Source conflict",
+        status_code: HTTPStatus = HTTPStatus.CONFLICT,
+    ):
+        super().__init__(message=message, status_code=status_code)

@@ -13,7 +13,7 @@ from constants import UTF8
 from db.repositories import ProviderRepository, SourceFileRepository, SourceRepository
 from db.sessions import async_session
 from enums.source import SourceStatus, SourceType
-from settings import BASE_PATH, chroma_settings, prefect_settings
+from settings import BASE_PATH, chroma_settings, core_settings, prefect_settings
 from utils import decrypt
 
 
@@ -151,11 +151,32 @@ async def _complete_processing_source(source_id: int, summary: str) -> None:
     repository = SourceRepository()
 
     async with async_session() as session:
-        await repository.update_by(
+        source = await repository.update_by(
             session=session,
             id=source_id,
             data={"status": SourceStatus.COMPLETED, "summary": summary},
         )
+        if not source:
+            msg = f"Source №{source_id} not found!"
+            raise ValueError(msg)
+
+    chroma_client = await chromadb.AsyncHttpClient(
+        host=chroma_settings.host, port=chroma_settings.port
+    )
+    source_index_collection = await chroma_client.get_or_create_collection(
+        name=core_settings.sources_index_collection
+    )
+    await source_index_collection.upsert(
+        ids=[f"source-{source.id}"],
+        documents=[summary],
+        metadatas=[
+            {
+                "source_id": source.id,
+                "source_name": source.name,
+                "source_type": source.type.value,
+            }
+        ],
+    )
 
 
 @task(name="Index Source")

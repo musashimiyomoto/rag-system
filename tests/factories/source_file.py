@@ -4,7 +4,7 @@ from db.models import SourceFile
 from tests.factories.base import AsyncSQLAlchemyModelFactory
 
 
-class SourceFileFactory(AsyncSQLAlchemyModelFactory[SourceFile]):
+class SourceFileFactory(AsyncSQLAlchemyModelFactory):
     class Meta:
         model = SourceFile
 

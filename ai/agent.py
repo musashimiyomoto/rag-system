@@ -46,12 +46,23 @@ async def generate_agent(
 
     @agent.instructions
     async def generate_instructions(context: RunContext[Dependencies]) -> str:
-        source = await SourceRepository().get_by(
-            session=context.deps.session, id=context.deps.source_id
-        )
-        if not source:
-            return SYSTEM_PROMPT.format(source_summary="Empty summary")
+        source_summaries = []
+        for source_id in context.deps.source_ids:
+            source = await SourceRepository().get_by(
+                session=context.deps.session, id=source_id
+            )
+            if not source:
+                continue
 
-        return SYSTEM_PROMPT.format(source_summary=source.summary)
+            source_summaries.append(
+                f"[source:{source.id}] {source.name}\n"
+                f"{source.summary or 'Empty summary'}"
+            )
+
+        return SYSTEM_PROMPT.format(
+            source_summary="\n\n".join(source_summaries)
+            if source_summaries
+            else "Empty summary"
+        )
 
     return agent

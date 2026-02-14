@@ -9,6 +9,9 @@ class CoreSettings(BaseSettings):
 
     max_file_size: int = Field(default=1024 * 1024 * 10, title="Max file size")
     master_key: str = Field(default="change-me-master-key", title="Master key")
+    sources_index_collection: str = Field(
+        default="sources_index", title="ChromaDB collection name for source indexing"
+    )
 
 
 core_settings = CoreSettings()

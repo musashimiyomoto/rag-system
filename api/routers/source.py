@@ -4,8 +4,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile,
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import db, session, source
-from schemas import SessionResponse, SourceResponse
+from api.dependencies import db, source
+from schemas import SourceResponse
 
 router = APIRouter(prefix="/source", tags=["Source"])
 
@@ -47,17 +47,6 @@ async def get_source(
     ],
 ) -> SourceResponse:
     return await usecase.get_source(session=session, source_id=source_id)
-
-
-@router.get(path="/{source_id}/session/list")
-async def get_sessions_for_source(
-    source_id: Annotated[int, Path(default=...)],
-    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
-    usecase: Annotated[
-        session.SessionUsecase, Depends(dependency=session.get_session_usecase)
-    ],
-) -> list[SessionResponse]:
-    return await usecase.get_sessions_for_source(session=session, source_id=source_id)
 
 
 @router.delete(path="/{id}")

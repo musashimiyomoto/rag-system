@@ -29,7 +29,10 @@ def upgrade() -> None:
             comment="Name",
         ),
         sa.Column(
-            "api_key_encrypted", sa.String(), nullable=False, comment="Encrypted API key"
+            "api_key_encrypted",
+            sa.String(),
+            nullable=False,
+            comment="Encrypted API key",
         ),
         sa.Column("is_active", sa.Boolean(), nullable=False, comment="Is active"),
         sa.Column(

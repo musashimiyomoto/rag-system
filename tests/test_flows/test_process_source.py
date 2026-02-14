@@ -135,6 +135,22 @@ class TestSummarizeSourceTask(BaseTestCase):
 
 
 class TestCompleteProcessingSourceTask(BaseTestCase):
+    @pytest_asyncio.fixture(autouse=True)
+    async def _mock_chroma_client(self) -> AsyncGenerator[mock.MagicMock, None]:
+        self.mock_source_index_collection = mock.AsyncMock()
+        self.mock_source_index_collection.upsert.return_value = None
+
+        mock_chroma_client = mock.AsyncMock()
+        mock_chroma_client.get_or_create_collection.return_value = (
+            self.mock_source_index_collection
+        )
+
+        with mock.patch(
+            "flows.process_source.chromadb.AsyncHttpClient",
+            return_value=mock_chroma_client,
+        ):
+            yield self.mock_source_index_collection
+
     @pytest.mark.asyncio
     async def test_success(self, test_session: AsyncSession):
         source = await SourceFactory.create_async(session=self.session)
@@ -153,3 +169,4 @@ class TestCompleteProcessingSourceTask(BaseTestCase):
             await self.session.refresh(source)
             assert source.status == SourceStatus.COMPLETED
             assert source.summary == test_summary
+            self.mock_source_index_collection.upsert.assert_awaited_once()

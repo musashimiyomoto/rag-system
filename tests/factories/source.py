@@ -5,7 +5,7 @@ from enums import SourceStatus, SourceType
 from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
-class SourceFactory(AsyncSQLAlchemyModelFactory[Source]):
+class SourceFactory(AsyncSQLAlchemyModelFactory):
     class Meta:
         model = Source
 
