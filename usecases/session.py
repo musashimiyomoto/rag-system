@@ -10,13 +10,13 @@ class SessionUsecase:
         self._message_repository = MessageRepository()
 
     async def create_session(
-        self, session: AsyncSession, document_id: int
+        self, session: AsyncSession, source_id: int
     ) -> SessionResponse:
         """Create a new session.
 
         Args:
             session: The async session.
-            document_id: The document id.
+            source_id: The source id.
 
         Returns:
             The created session.
@@ -26,19 +26,19 @@ class SessionUsecase:
             await self._session_repository.create(
                 session=session,
                 data={
-                    "document_id": document_id,
+                    "source_id": source_id,
                 },
             )
         )
 
-    async def get_sessions_for_document(
-        self, session: AsyncSession, document_id: int
+    async def get_sessions_for_source(
+        self, session: AsyncSession, source_id: int
     ) -> list[SessionResponse]:
-        """Get sessions for a document.
+        """Get sessions for a source.
 
         Args:
             session: The async session.
-            document_id: The document id.
+            source_id: The source id.
 
         Returns:
             The list of sessions.
@@ -47,7 +47,7 @@ class SessionUsecase:
         return [
             SessionResponse.model_validate(session_obj)
             for session_obj in await self._session_repository.get_all(
-                session=session, document_id=document_id
+                session=session, source_id=source_id
             )
         ]
 

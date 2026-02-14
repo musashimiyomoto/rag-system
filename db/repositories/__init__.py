@@ -1,5 +1,5 @@
-from db.repositories.document import DocumentRepository
 from db.repositories.message import MessageRepository
 from db.repositories.session import SessionRepository
+from db.repositories.source import SourceRepository
 
-__all__ = ["DocumentRepository", "MessageRepository", "SessionRepository"]
+__all__ = ["SourceRepository", "MessageRepository", "SessionRepository"]

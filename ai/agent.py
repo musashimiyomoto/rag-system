@@ -4,7 +4,7 @@ from ai.dependencies import Dependencies
 from ai.model import get_model
 from ai.prompts import SYSTEM_PROMPT
 from ai.tools import retrieve
-from db.repositories import DocumentRepository
+from db.repositories import SourceRepository
 from enums import LLMName
 
 
@@ -29,12 +29,12 @@ def generate_agent(llm: LLMName) -> Agent[Dependencies, str]:
 
     @agent.instructions
     async def generate_instructions(context: RunContext[Dependencies]) -> str:
-        document = await DocumentRepository().get_by(
-            session=context.deps.session, id=context.deps.document_id
+        source = await SourceRepository().get_by(
+            session=context.deps.session, id=context.deps.source_id
         )
-        if not document:
-            return SYSTEM_PROMPT.format(document_summary="Empty summary")
+        if not source:
+            return SYSTEM_PROMPT.format(source_summary="Empty summary")
 
-        return SYSTEM_PROMPT.format(document_summary=document.summary)
+        return SYSTEM_PROMPT.format(source_summary=source.summary)
 
     return agent

@@ -2,7 +2,7 @@ import pytest
 
 from enums import LLMName
 from tests.base import BaseTestCase
-from tests.factories import DocumentFactory, SessionFactory
+from tests.factories import SessionFactory, SourceFactory
 
 
 class TestChatStream(BaseTestCase):
@@ -10,9 +10,9 @@ class TestChatStream(BaseTestCase):
 
     @pytest.mark.asyncio
     async def test_ok(self) -> None:
-        document = await DocumentFactory.create_async(session=self.session)
+        source = await SourceFactory.create_async(session=self.session)
         session = await SessionFactory.create_async(
-            session=self.session, document_id=document.id
+            session=self.session, source_id=source.id
         )
         data = {"message": "Hello, how are you?", "session_id": session.id}
 

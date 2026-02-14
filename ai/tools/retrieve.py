@@ -2,7 +2,7 @@ import chromadb
 from pydantic_ai import RunContext
 
 from ai.dependencies import Dependencies
-from db.repositories import DocumentRepository
+from db.repositories import SourceRepository
 from settings import chroma_settings
 
 
@@ -19,21 +19,21 @@ async def retrieve(context: RunContext[Dependencies], search_query: str) -> str:
         port=chroma_settings.port,
     )
 
-    document = await DocumentRepository().get_by(
-        session=context.deps.session, id=context.deps.document_id
+    source = await SourceRepository().get_by(
+        session=context.deps.session, id=context.deps.source_id
     )
-    if not document:
-        return "Document not found"
+    if not source:
+        return "Source not found"
 
-    document_collection = await chroma_client.get_collection(
-        name=document.collection,
+    source_collection = await chroma_client.get_collection(
+        name=source.collection,
     )
 
-    document_results = await document_collection.query(
+    source_results = await source_collection.query(
         query_texts=[search_query],
         n_results=context.deps.n_results,
     )
-    documents = document_results.get("documents")
+    documents = source_results.get("documents")
     if not documents:
         return "No data results found"
 

@@ -4,19 +4,19 @@ from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from db.models.base import Base
-from enums import DocumentStatus, DocumentType
+from enums import SourceStatus, SourceType
 
 
-class Document(Base):
-    __tablename__ = "documents"
+class Source(Base):
+    __tablename__ = "sources"
 
     id: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True, unique=True, comment="ID"
     )
 
     name: Mapped[str] = mapped_column(comment="Name")
-    type: Mapped[DocumentType] = mapped_column(comment="Type")
-    status: Mapped[DocumentStatus] = mapped_column(comment="Status")
+    type: Mapped[SourceType] = mapped_column(comment="Type")
+    status: Mapped[SourceStatus] = mapped_column(comment="Status")
     collection: Mapped[str] = mapped_column(comment="Collection")
     summary: Mapped[str | None] = mapped_column(comment="Summary")
 

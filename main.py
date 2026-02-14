@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import chat, document, health, session
+from api.routers import chat, health, session, source
 from db.sessions import async_engine
 from exceptions import BaseError
 
@@ -17,7 +17,7 @@ logfire.instrument_redis()
 logfire.instrument_pydantic_ai()
 
 app.add_middleware(
-    middleware_class=CORSMiddleware,
+    CORSMiddleware,  # ty: ignore[invalid-argument-type]
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
@@ -41,6 +41,6 @@ async def exception_handler(request: Request, exc: BaseError) -> JSONResponse:
 
 
 app.include_router(router=health.router)
-app.include_router(router=document.router)
+app.include_router(router=source.router)
 app.include_router(router=session.router)
 app.include_router(router=chat.router)

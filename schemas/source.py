@@ -2,15 +2,15 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from enums import DocumentStatus, DocumentType
+from enums import SourceStatus, SourceType
 
 
-class DocumentResponse(BaseModel):
+class SourceResponse(BaseModel):
     id: int = Field(default=..., description="ID", gt=0)
 
     name: str = Field(default=..., description="Name")
-    type: DocumentType = Field(default=..., description="Type")
-    status: DocumentStatus = Field(default=..., description="Status")
+    type: SourceType = Field(default=..., description="Type")
+    status: SourceStatus = Field(default=..., description="Status")
     collection: str = Field(default=..., description="Collection")
     summary: str | None = Field(default=None, description="Summary")
 

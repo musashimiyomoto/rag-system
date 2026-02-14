@@ -13,8 +13,8 @@ class Session(Base):
         primary_key=True, autoincrement=True, unique=True, comment="ID"
     )
 
-    document_id: Mapped[int] = mapped_column(
-        ForeignKey("documents.id"), comment="Document ID"
+    source_id: Mapped[int] = mapped_column(
+        ForeignKey("sources.id"), comment="Source ID"
     )
 
     created_at: Mapped[datetime] = mapped_column(

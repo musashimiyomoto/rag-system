@@ -10,9 +10,10 @@ TestModel = TypeVar("TestModel", bound=object)
 
 
 class AsyncSQLAlchemyModelFactory(
-    factory.alchemy.SQLAlchemyModelFactory, Generic[TestModel]
+    factory.alchemy.SQLAlchemyModelFactory,
+    Generic[TestModel],  # ty: ignore[possibly-missing-attribute]
 ):
-    class Meta:  # type: ignore
+    class Meta:
         abstract = True
         sqlalchemy_session_persistence = "commit"
 

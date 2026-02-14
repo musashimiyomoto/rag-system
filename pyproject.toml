@@ -92,8 +92,11 @@ exclude = ["db/alembic/versions/*.py", "db/alembic/env.py", "ai/prompts/*.py"]
     "PGH003",  # "Use specific rule codes when ignoring type issues"
 ]
 
-[tool.ty]
+[tool.ty.environment]
 python-version = "3.11"
+
+[tool.ty.src]
+exclude = ["db/alembic/"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

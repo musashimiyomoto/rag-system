@@ -17,9 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai.dependencies import Dependencies
 from ai.prompts import SYSTEM_PROMPT
 from db.repositories import MessageRepository, SessionRepository
-from db.repositories.document import DocumentRepository
+from db.repositories.source import SourceRepository
 from enums import Role
-from exceptions import DocumentNotFoundError, SessionNotFoundError
+from exceptions import SessionNotFoundError, SourceNotFoundError
 from schemas import ChatRequest, ChatResponse
 
 
@@ -147,17 +147,17 @@ class ChatUsecase:
         if not chat_session:
             raise SessionNotFoundError
 
-        document = await DocumentRepository().get_by(
-            session=session, id=chat_session.document_id
+        source = await SourceRepository().get_by(
+            session=session, id=chat_session.source_id
         )
-        if not document:
-            raise DocumentNotFoundError
+        if not source:
+            raise SourceNotFoundError
 
         async with agent.run_stream(
             data.message,
             deps=Dependencies(
                 session=session,
-                document_id=chat_session.document_id,
+                source_id=chat_session.source_id,
             ),
             message_history=await self.get_message_history(
                 session=session, session_id=data.session_id

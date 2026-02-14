@@ -5,7 +5,7 @@ from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
 class SessionFactory(AsyncSQLAlchemyModelFactory[Session]):
-    class Meta:  # type: ignore
+    class Meta:
         model = Session
 
-    document_id = LazyAttribute(lambda obj: fake.pyint(min_value=1))
+    source_id = LazyAttribute(lambda obj: fake.pyint(min_value=1))
