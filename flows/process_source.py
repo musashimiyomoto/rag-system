@@ -27,9 +27,9 @@ async def deploy_process_source_flow(source_id: int) -> UUID:
         The deployment ID.
 
     """
-    deployment = await flow.from_source(  # ty:ignore[invalid-await]
+    deployment = await flow.from_source(
         source=BASE_PATH, entrypoint="flows/process_source.py:process_source"
-    )
+    )  # ty:ignore[invalid-await]
 
     return await deployment.deploy(
         name=f"PROCESS_SOURCE_{source_id}",
