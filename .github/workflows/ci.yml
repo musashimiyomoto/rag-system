@@ -31,17 +31,14 @@ jobs:
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --with dev,test
 
-    - name: Check black
-      run: poetry run black --check --diff .
-
-    - name: Check isort
-      run: poetry run isort --check-only --diff .
+    - name: Check ruff format
+      run: poetry run ruff format --check --diff .
 
     - name: Check ruff
       run: poetry run ruff check .
 
-    - name: Check pyright
-      run: poetry run pyright .
+    - name: Check ty
+      run: poetry run ty check
 
     - name: Run tests
       run: poetry run pytest -v --cov=. --cov-report=term-missing --cov-report=xml

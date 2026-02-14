@@ -55,7 +55,6 @@ make stop
 4. **Access the API documentation**:
    - Swagger UI: http://localhost:5000/docs
    - Prefect UI: http://localhost:4200
-   - UI RAG Application: http://localhost:5000
 
 ## Development
 
@@ -101,35 +100,3 @@ make build     # Start the application
 # Test your changes
 make stop      # Stop when done
 ```
-
-## RAG System Features
-
-The RAG (Retrieval-Augmented Generation) system provides intelligent document processing and chat capabilities:
-
-1. **Document Upload**: Upload documents through the `/document` endpoint for processing and indexing
-2. **Document Processing**: Documents are automatically processed, chunked, and stored in a vector database (ChromaDB)
-3. **Streaming Responses**: Real-time streaming chat responses using FastAPI's StreamingResponse
-4. **AI Integration**: Powered by PydanticAI with support for multiple AI providers (OpenAI, Google)
-5. **Session Management**: Persistent chat sessions for better user experience
-6. **Health Monitoring**: Built-in health checks for system monitoring
-
-### API Endpoints
-
-- **Health Check**:
-  - `GET /health/liveness` - System liveness health status
-  - `GET /health/readiness` - System readiness health status
-- **Document Management**:
-  - `POST /document` - Upload and process documents
-  - `GET /document/list` - Get all documents
-  - `GET /document/{document_id}` - Get a specific document
-  - `GET /document/{document_id}/session/list` - Get all sessions for a specific document
-  - `DELETE /document/{document_id}` - Delete a specific document
-- **Chat Streaming**:
-  - `POST /chat/stream` - Stream chat responses
-- **Session Management**:
-  - `POST /session` - Create chat sessions
-  - `DELETE /session/{session_id}` - Delete a specific session
-  - `GET /session/{session_id}/message/list` - Get all messages for a specific session
-- **Web Interface**:
-  - `GET /` - Main application interface
-  - `GET /chat/{document_id}` - Chat interface for specific documents

@@ -16,16 +16,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.dependencies import Dependencies
 from ai.prompts import SYSTEM_PROMPT
-from db.repositories import MessageRepository, SessionRepository
-from db.repositories.document import DocumentRepository
+from db.repositories import (
+    MessageRepository,
+    SessionRepository,
+    SessionSourceRepository,
+    SourceRepository,
+)
 from enums import Role
-from exceptions import DocumentNotFoundError, SessionNotFoundError
+from exceptions import SessionNotFoundError
 from schemas import ChatRequest, ChatResponse
 
 
 class ChatUsecase:
     def __init__(self):
         self._message_repository = MessageRepository()
+        self._session_repository = SessionRepository()
+        self._session_source_repository = SessionSourceRepository()
+        self._source_repository = SourceRepository()
 
     async def get_message_history(
         self, session: AsyncSession, session_id: int
@@ -141,24 +148,22 @@ class ChatUsecase:
             content=data.message,
         ).model_dump_bytes()
 
-        chat_session = await SessionRepository().get_by(
+        chat_session = await self._session_repository.get_by(
             session=session, id=data.session_id
         )
         if not chat_session:
             raise SessionNotFoundError
 
-        document = await DocumentRepository().get_by(
-            session=session, id=chat_session.document_id
-        )
-        if not document:
-            raise DocumentNotFoundError
+        source_ids = [
+            source_session.source_id
+            for source_session in await self._session_source_repository.get_all(
+                session=session, session_id=data.session_id
+            )
+        ]
 
         async with agent.run_stream(
             data.message,
-            deps=Dependencies(
-                session=session,
-                document_id=chat_session.document_id,
-            ),
+            deps=Dependencies(session=session, source_ids=source_ids),
             message_history=await self.get_message_history(
                 session=session, session_id=data.session_id
             ),

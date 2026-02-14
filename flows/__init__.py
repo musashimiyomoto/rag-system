@@ -1,3 +1,3 @@
-from flows.process_document import deploy_process_document_flow
+from flows.process_source import deploy_process_source_flow
 
-__all__ = ["deploy_process_document_flow"]
+__all__ = ["deploy_process_source_flow"]

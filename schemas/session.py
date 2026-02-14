@@ -4,13 +4,13 @@ from pydantic import BaseModel, Field
 
 
 class SessionRequest(BaseModel):
-    document_id: int = Field(default=..., description="Document ID")
+    source_ids: list[int] = Field(default=..., description="Source IDs")
 
 
 class SessionResponse(BaseModel):
     id: int = Field(default=..., description="ID", gt=0)
 
-    document_id: int = Field(default=..., description="Document ID")
+    source_ids: list[int] = Field(default=..., description="Source IDs")
 
     created_at: datetime = Field(default=..., description="Created at")
 

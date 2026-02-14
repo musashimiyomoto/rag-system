@@ -1,12 +1,12 @@
 from enum import StrEnum, auto
 
 
-class DocumentType(StrEnum):
+class SourceType(StrEnum):
     PDF = auto()
     TXT = auto()
 
 
-class DocumentStatus(StrEnum):
+class SourceStatus(StrEnum):
     CREATED = auto()
     PROCESSED = auto()
     COMPLETED = auto()

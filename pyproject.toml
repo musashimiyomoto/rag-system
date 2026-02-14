@@ -19,20 +19,20 @@ pydantic-settings = "2.10.1"
 sqlalchemy = "2.0.37"
 asyncpg = "0.28.0"
 chromadb = "1.0.20"
-prefect = "3.4.13"
-textract = "1.6.5"
+prefect = "3.6.17"
+pypdf = "5.6.0"
 langchain-text-splitters = "0.3.11"
 python-multipart = "0.0.20"
+cryptography = "44.0.1"
+httpx = "0.28.1"
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-black = "*"
-isort = "*"
 pre-commit = "*"
-pyright = { extras = ["nodejs"], version = "*" }
 ruff = "*"
+ty = "*"
 
 [tool.poetry.group.test]
 optional = true
@@ -43,20 +43,11 @@ pytest-asyncio = "*"
 pytest-cov = "*"
 factory-boy = "*"
 faker = "*"
-asyncpg = "*"
 testcontainers = { extras = ["postgresql"], version = "*" }
 
-[tool.black]
+[tool.ruff]
 line-length = 88
-target-version = ["py311"]
-
-[tool.isort]
-atomic = true
-profile = "black"
-py_version = 311
-line_length = 88
-skip_gitignore = true
-multi_line_output = 3
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
@@ -102,10 +93,11 @@ exclude = ["db/alembic/versions/*.py", "db/alembic/env.py", "ai/prompts/*.py"]
     "PGH003",  # "Use specific rule codes when ignoring type issues"
 ]
 
-[tool.pyright]
-typeCheckingMode = "standard"
-pythonVersion = "3.11"
-ignore = ["db"]
+[tool.ty.environment]
+python-version = "3.11"
+
+[tool.ty.src]
+exclude = ["db/alembic/"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

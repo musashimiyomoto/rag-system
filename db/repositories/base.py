@@ -69,7 +69,7 @@ class BaseRepository(Generic[Model]):
         result = await session.execute(
             statement=select(self.model)
             .filter_by(**filters)
-            .order_by(self.model.id.asc())
+            .order_by(self.model.id.asc())  # ty:ignore[unresolved-attribute]
         )
 
         return list(result.scalars().all())

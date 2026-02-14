@@ -75,7 +75,9 @@ class HealthUsecase:
         )
 
         service_checks = {}
-        for service_name, result in zip([task[0] for task in tasks], results):
+        for service_name, result in zip(
+            [task[0] for task in tasks], results, strict=True
+        ):
             if isinstance(result, Exception):
                 service_checks[service_name] = False
             else:

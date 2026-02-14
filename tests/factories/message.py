@@ -5,8 +5,8 @@ from enums import Role
 from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
-class MessageFactory(AsyncSQLAlchemyModelFactory[Message]):
-    class Meta:  # type: ignore
+class MessageFactory(AsyncSQLAlchemyModelFactory):
+    class Meta:
         model = Message
 
     session_id = LazyAttribute(lambda obj: fake.pyint(min_value=1))

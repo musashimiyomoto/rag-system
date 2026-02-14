@@ -31,8 +31,8 @@ install:
 
 format:
 	@echo "$(BLUE)Formatting code...$(NC)"
-	$(POETRY) run black .
-	$(POETRY) run isort .
+	$(POETRY) run ruff format .
+	$(POETRY) run ruff check --fix .
 	@echo "$(GREEN)Formatting completed!$(NC)"
 
 check:
@@ -40,8 +40,8 @@ check:
 	$(POETRY) run ruff check .
 	@echo "$(GREEN)Ruff check completed!$(NC)"
 
-	@echo "$(BLUE)Checking type...$(NC)"
-	$(POETRY) run pyright
+	@echo "$(BLUE)Checking types with ty...$(NC)"
+	$(POETRY) run ty check
 	@echo "$(GREEN)Type check completed!$(NC)"
 
 test:

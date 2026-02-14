@@ -18,7 +18,7 @@ async def create_session(
         session.SessionUsecase, Depends(dependency=session.get_session_usecase)
     ],
 ) -> SessionResponse:
-    return await usecase.create_session(session=session, document_id=data.document_id)
+    return await usecase.create_session(session=session, source_ids=data.source_ids)
 
 
 @router.get(path="/{session_id}/message/list")

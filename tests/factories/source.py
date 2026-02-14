@@ -1,16 +1,16 @@
 from factory.declarations import LazyAttribute
 
-from db.models import Document
-from enums import DocumentStatus, DocumentType
+from db.models import Source
+from enums import SourceStatus, SourceType
 from tests.factories.base import AsyncSQLAlchemyModelFactory, fake
 
 
-class DocumentFactory(AsyncSQLAlchemyModelFactory[Document]):
-    class Meta:  # type: ignore
-        model = Document
+class SourceFactory(AsyncSQLAlchemyModelFactory):
+    class Meta:
+        model = Source
 
     name = LazyAttribute(lambda obj: fake.name())
-    type = DocumentType.PDF
-    status = DocumentStatus.CREATED
+    type = SourceType.PDF
+    status = SourceStatus.CREATED
     collection = LazyAttribute(lambda obj: fake.uuid4())
     summary = LazyAttribute(lambda obj: fake.text())

@@ -12,32 +12,33 @@ from pydantic_ai.models import ModelRequestParameters
 from ai.model import get_model
 from ai.prompts.summary import SUMMARY_PROMPT
 from constants import RATE_LIMIT_DELAY
-from enums import LLMName
-from settings.core import core_settings
+from enums import ProviderName
+from utils import decrypt
 
 
-async def summarize(texts: list[str]) -> str:
-    """Summarize the texts.
+async def summarize(
+    texts: list[str],
+    provider_name: ProviderName,
+    model_name: str,
+    api_key_encrypted: str,
+) -> str:
+    """Summarize source chunks using default summary provider.
 
     Args:
-        texts: The texts to summarize.
+        texts: The list of source chunks to summarize.
+        provider_name: The provider name.
+        model_name: The model name.
+        api_key_encrypted: The encrypted API key.
 
     Returns:
-        The summarized texts.
-
-    Raises:
-        ClientError: If the client error occurs.
+        The final source summary.
 
     """
-    if core_settings.google_api_key:
-        model, _ = get_model(llm=LLMName.GEMINI_2_5_FLASH_LITE)
-    elif core_settings.github_api_key:
-        model, _ = get_model(llm=LLMName.GITHUB_GPT_4_O_MINI)
-    elif core_settings.openai_api_key:
-        model, _ = get_model(llm=LLMName.OPENAI_GPT_5_NANO)
-    else:
-        msg = "Google API key or GitHub API key or OpenAI API key is required"
-        raise ValueError(msg)
+    model, _ = get_model(
+        provider_name=provider_name,
+        model_name=model_name,
+        api_key=decrypt(encrypted_data=api_key_encrypted),
+    )
 
     messages: list[ModelMessage] = [
         ModelRequest(parts=[SystemPromptPart(content=SUMMARY_PROMPT)])
