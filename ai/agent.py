@@ -1,24 +1,41 @@
 from pydantic_ai import Agent, RunContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.dependencies import Dependencies
 from ai.model import get_model
 from ai.prompts import SYSTEM_PROMPT
 from ai.tools import retrieve
-from db.repositories import SourceRepository
-from enums import LLMName
+from db.repositories import ProviderRepository, SourceRepository
+from exceptions import ProviderConflictError, ProviderNotFoundError
+from utils import decrypt
 
 
-def generate_agent(llm: LLMName) -> Agent[Dependencies, str]:
+async def generate_agent(
+    session: AsyncSession, provider_id: int, model_name: str
+) -> Agent[Dependencies, str]:
     """Generate the agent.
 
     Args:
-        llm: The large language model name.
+        session: The database session.
+        provider_id: The provider ID.
+        model_name: The model name.
 
     Returns:
         The agent.
 
     """
-    model, model_settings = get_model(llm=llm)
+    provider = await ProviderRepository().get_by(session=session, id=provider_id)
+
+    if not provider:
+        raise ProviderNotFoundError
+    if not provider.is_active:
+        raise ProviderConflictError(message="Provider is inactive")
+
+    model, model_settings = get_model(
+        provider_name=provider.name,
+        model_name=model_name,
+        api_key=decrypt(encrypted_data=provider.api_key_encrypted),
+    )
 
     agent = Agent(
         model=model,

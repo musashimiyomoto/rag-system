@@ -15,7 +15,6 @@ from testcontainers.postgres import PostgresContainer
 from ai.dependencies import Dependencies
 from api.dependencies import agent, db
 from db.models import Base
-from enums import LLMName
 from main import app
 from settings import postgres_settings
 
@@ -58,10 +57,10 @@ async def test_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession,
 
 @pytest_asyncio.fixture(scope="function")
 async def test_client(test_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    def override_get_session():
-        return test_session
+    async def override_get_session():
+        yield test_session
 
-    def override_get_agent(llm: LLMName) -> Agent[Dependencies, str]:
+    async def override_get_agent() -> Agent[Dependencies, str]:
         return Agent(model=TestModel(), deps_type=Dependencies, model_settings=None)
 
     app.dependency_overrides[db.get_session] = override_get_session

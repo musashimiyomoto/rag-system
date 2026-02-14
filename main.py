@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import chat, health, session, source
+from api.routers import chat, health, provider, session, source
 from db.sessions import async_engine
 from exceptions import BaseError
 
@@ -44,3 +44,4 @@ app.include_router(router=health.router)
 app.include_router(router=source.router)
 app.include_router(router=session.router)
 app.include_router(router=chat.router)
+app.include_router(router=provider.router)

@@ -1,3 +1,3 @@
-from api.routers import chat, health, session, source
+from api.routers import chat, health, provider, session, source
 
-__all__ = ["health", "source", "chat", "session"]
+__all__ = ["health", "source", "chat", "session", "provider"]

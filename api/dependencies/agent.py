@@ -1,23 +1,30 @@
 from typing import Annotated
 
-from fastapi import Query
+from fastapi import Depends, Query
 from pydantic_ai import Agent
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.agent import generate_agent
 from ai.dependencies import Dependencies
-from enums import LLMName
+from api.dependencies import db
 
 
-def get_agent(
-    llm: Annotated[LLMName, Query()] = LLMName.OPENAI_GPT_5_NANO,
+async def get_agent(
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    provider_id: Annotated[int, Query(default=..., gt=0)],
+    model_name: Annotated[str, Query(default=..., min_length=1)],
 ) -> Agent[Dependencies, str]:
-    """Get the agent instance.
+    """Get agent instance by provider runtime configuration.
 
     Args:
-        llm: The llm name.
+        session: The database session.
+        provider_id: The provider ID.
+        model_name: The model name.
 
     Returns:
         The agent instance.
 
     """
-    return generate_agent(llm=llm)
+    return await generate_agent(
+        session=session, provider_id=provider_id, model_name=model_name
+    )

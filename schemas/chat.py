@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from constants import UTF8
 from enums import Role
 
 
@@ -22,4 +23,4 @@ class ChatResponse(BaseModel):
             The bytes of the model.
 
         """
-        return self.model_dump_json().encode("utf-8") + b"\n"
+        return self.model_dump_json().encode(UTF8) + b"\n"

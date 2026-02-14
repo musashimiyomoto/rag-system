@@ -7,11 +7,14 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from prefect import flow, task
 from pypdf import PdfReader
 
+from ai.providers import list_provider_models
 from ai.summarize import summarize
-from db.repositories import SourceFileRepository, SourceRepository
+from constants import UTF8
+from db.repositories import ProviderRepository, SourceFileRepository, SourceRepository
 from db.sessions import async_session
 from enums.source import SourceStatus, SourceType
 from settings import BASE_PATH, chroma_settings, prefect_settings
+from utils import decrypt
 
 
 async def deploy_process_source_flow(source_id: int) -> UUID:
@@ -24,7 +27,7 @@ async def deploy_process_source_flow(source_id: int) -> UUID:
         The deployment ID.
 
     """
-    deployment = await flow.from_source(  # type: ignore[attr-defined]
+    deployment = await flow.from_source(  # ty:ignore[invalid-await]
         source=BASE_PATH, entrypoint="flows/process_source.py:process_source"
     )
 
@@ -82,8 +85,7 @@ async def get_source_content(source_id: int) -> tuple[str, SourceType, bytes]:
             raise ValueError(msg)
 
         source_file = await source_file_repository.get_by(
-            session=session,
-            source_id=source_id,
+            session=session, source_id=source_id
         )
         if not source_file:
             await source_repository.update_by(
@@ -109,12 +111,12 @@ def _extract_text(source_type: SourceType, content: bytes) -> str:
 
     """
     if source_type == SourceType.TXT:
-        return content.decode("utf-8", errors="replace")
+        return content.decode(encoding=UTF8)
 
     if source_type == SourceType.PDF:
         return "\n".join(
             page.extract_text() or ""
-            for page in PdfReader(stream=BytesIO(content)).pages
+            for page in PdfReader(stream=BytesIO(initial_bytes=content)).pages
         )
 
     msg = f"Unsupported source type: {source_type.value}"
@@ -122,7 +124,16 @@ def _extract_text(source_type: SourceType, content: bytes) -> str:
 
 
 def _generate_chunks(text: str, chunk_size: int = 512) -> list[str]:
-    """Generate chunks from extracted text."""
+    """Generate chunks from extracted text.
+
+    Args:
+        text: The extracted text to split into chunks.
+        chunk_size: The maximum size of each chunk.
+
+    Returns:
+        A list of text chunks.
+
+    """
     return RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=0
     ).split_text(text=text)
@@ -174,17 +185,46 @@ async def _index_source(source_id: int) -> list[str]:
 
 
 @task(name="Summarize Source")
-async def _summarize_source(chunks: list[str]) -> str:
+async def _summarize_source(source_id: int, chunks: list[str]) -> str:
     """Summarize the source by processing all chunks.
 
     Args:
+        source_id: The source ID.
         chunks: The source chunks to summarize.
 
     Returns:
         The final source summary.
 
     """
-    return await summarize(texts=chunks)
+    source_repository = SourceRepository()
+
+    async with async_session() as session:
+        provider = await ProviderRepository().get_by(session=session, is_active=True)
+        if not provider or not provider.is_active:
+            await source_repository.update_by(
+                session=session, id=source_id, data={"status": SourceStatus.FAILED}
+            )
+            msg = "No active provider found!"
+            raise ValueError(msg)
+
+    models = list_provider_models(
+        name=provider.name, api_key=decrypt(encrypted_data=provider.api_key_encrypted)
+    )
+    if len(models) > 0:
+        model_name = models[0].name
+    else:
+        await source_repository.update_by(
+            session=session, id=source_id, data={"status": SourceStatus.FAILED}
+        )
+        msg = f"No models found for provider {provider.name}!"
+        raise ValueError(msg)
+
+    return await summarize(
+        texts=chunks,
+        provider_name=provider.name,
+        model_name=model_name,
+        api_key_encrypted=provider.api_key_encrypted,
+    )
 
 
 @flow(name="Process Source", timeout_seconds=2 * 3600, retries=3)
@@ -202,6 +242,6 @@ async def process_source(source_id: int) -> None:
     """
     chunks = await _index_source(source_id=source_id)
 
-    summary = await _summarize_source(chunks=chunks)
+    summary = await _summarize_source(source_id=source_id, chunks=chunks)
 
     await _complete_processing_source(source_id=source_id, summary=summary)

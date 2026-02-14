@@ -13,7 +13,7 @@ from flows.process_source import (
     _summarize_source,
 )
 from tests.base import BaseTestCase
-from tests.factories import SourceFactory, SourceFileFactory
+from tests.factories import ProviderFactory, SourceFactory, SourceFileFactory
 
 
 class TestIndexSourceTask(BaseTestCase):
@@ -33,7 +33,9 @@ class TestIndexSourceTask(BaseTestCase):
 
     @pytest.mark.asyncio
     async def test_success(self, test_session: AsyncSession):
-        source = await SourceFactory.create_async(session=self.session)
+        source = await SourceFactory.create_async(
+            session=self.session, type=SourceType.TXT
+        )
         await SourceFileFactory.create_async(
             session=self.session,
             source_id=source.id,
@@ -101,18 +103,35 @@ class TestSummarizeSourceTask(BaseTestCase):
             yield mock_summarize
 
     @pytest.mark.asyncio
-    async def test_success(self):
+    async def test_success(self, test_session: AsyncSession):
+        await ProviderFactory.create_async(session=self.session)
+
         test_chunks = [
             "This is the first chunk of the source.",
             "This is the second chunk of the source.",
             "This is the third chunk of the source.",
         ]
 
-        summary = await _summarize_source.fn(chunks=test_chunks)
+        mock_model = mock.Mock()
+        mock_model.name = "test_model"
 
-        assert isinstance(summary, str)
-        assert len(summary) > 0
-        assert "Mocked summary for chunk" in summary
+        mock_context_manager = mock.AsyncMock()
+        mock_context_manager.__aenter__.return_value = test_session
+        mock_context_manager.__aexit__.return_value = None
+        mock_async_session = mock.Mock(return_value=mock_context_manager)
+
+        with (
+            mock.patch("flows.process_source.async_session", mock_async_session),
+            mock.patch(
+                "flows.process_source.list_provider_models", return_value=[mock_model]
+            ),
+            mock.patch("flows.process_source.decrypt", return_value="decrypted_key"),
+        ):
+            summary = await _summarize_source.fn(source_id=1, chunks=test_chunks)
+
+            assert isinstance(summary, str)
+            assert len(summary) > 0
+            assert "Mocked summary for chunk" in summary
 
 
 class TestCompleteProcessingSourceTask(BaseTestCase):

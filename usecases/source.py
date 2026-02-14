@@ -100,7 +100,9 @@ class SourceUsecase:
             source_id: The source ID.
 
         """
-        await run_deployment(name=await deploy_process_source_flow(source_id=source_id))
+        await run_deployment(
+            name=await deploy_process_source_flow(source_id=source_id)
+        )  # ty:ignore[invalid-await]
 
     async def get_sources(self, session: AsyncSession) -> list[SourceResponse]:
         """Get the sources.

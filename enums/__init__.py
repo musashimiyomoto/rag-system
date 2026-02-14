@@ -1,5 +1,5 @@
-from enums.llm import LLMName, Provider
+from enums.provider import ProviderBaseUrl, ProviderName
 from enums.role import Role
 from enums.source import SourceStatus, SourceType
 
-__all__ = ["SourceType", "SourceStatus", "LLMName", "Provider", "Role"]
+__all__ = ["SourceType", "SourceStatus", "ProviderName", "ProviderBaseUrl", "Role"]

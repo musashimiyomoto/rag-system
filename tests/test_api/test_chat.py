@@ -1,6 +1,5 @@
 import pytest
 
-from enums import LLMName
 from tests.base import BaseTestCase
 from tests.factories import SessionFactory, SourceFactory
 
@@ -16,8 +15,6 @@ class TestChatStream(BaseTestCase):
         )
         data = {"message": "Hello, how are you?", "session_id": session.id}
 
-        response = await self.client.post(
-            url=self.url, params={"llm": LLMName.OPENAI_GPT_5_NANO}, json=data
-        )
+        response = await self.client.post(url=self.url, json=data)
 
         await self.assert_response_stream(response=response)

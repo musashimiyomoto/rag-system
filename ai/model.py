@@ -1,58 +1,30 @@
 from pydantic_ai.models import Model, google, openai
-from pydantic_ai.providers.github import GitHubProvider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.settings import ModelSettings
 
-from enums import LLMName, Provider
-from settings.core import core_settings
+from enums import ProviderName
+from exceptions import ProviderValidationError
 
 
-def get_model(llm: LLMName) -> tuple[Model, ModelSettings]:
-    """Get a model by llm name.
-
-    Args:
-        llm: The llm name.
-
-    Returns:
-        The model and settings.
-
-    """
-    if (
-        not core_settings.google_api_key
-        and not core_settings.github_api_key
-        and not core_settings.openai_api_key
-    ):
-        msg = "Google API key or GitHub API key or OpenAI API key are required"
-        raise ValueError(msg)
-
-    provider, model_name = llm.decompose()
-    if provider == Provider.GOOGLE:
+def get_model(
+    provider_name: ProviderName, model_name: str, api_key: str
+) -> tuple[Model, ModelSettings]:
+    """Build model client by runtime provider configuration."""
+    if provider_name == ProviderName.GOOGLE:
         return (
             google.GoogleModel(
-                model_name=model_name,
-                provider=GoogleProvider(api_key=core_settings.google_api_key),
+                model_name=model_name, provider=GoogleProvider(api_key=api_key)
             ),
-            google.GoogleModelSettings(
-                google_thinking_config={"include_thoughts": True}
-            ),
+            google.GoogleModelSettings(),
         )
-    if provider == Provider.GITHUB:
+
+    if provider_name == ProviderName.OPENAI:
         return (
             openai.OpenAIChatModel(
-                model_name=model_name,
-                provider=GitHubProvider(api_key=core_settings.github_api_key),
-            ),
-            openai.OpenAIChatModelSettings(),
-        )
-    if provider == Provider.OPENAI:
-        return (
-            openai.OpenAIChatModel(
-                model_name=model_name,
-                provider=OpenAIProvider(api_key=core_settings.openai_api_key),
+                model_name=model_name, provider=OpenAIProvider(api_key=api_key)
             ),
             openai.OpenAIChatModelSettings(),
         )
 
-    msg = f"Provider {provider} not supported"
-    raise ValueError(msg)
+    raise ProviderValidationError(message=f"Unsupported provider: {provider_name}")

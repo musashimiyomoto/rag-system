@@ -23,6 +23,8 @@ prefect = "3.6.17"
 pypdf = "5.6.0"
 langchain-text-splitters = "0.3.11"
 python-multipart = "0.0.20"
+cryptography = "44.0.1"
+httpx = "0.28.1"
 
 [tool.poetry.group.dev]
 optional = true
@@ -41,7 +43,6 @@ pytest-asyncio = "*"
 pytest-cov = "*"
 factory-boy = "*"
 faker = "*"
-asyncpg = "*"
 testcontainers = { extras = ["postgresql"], version = "*" }
 
 [tool.ruff]

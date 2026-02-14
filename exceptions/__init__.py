@@ -1,4 +1,11 @@
 from exceptions.base import BaseError
+from exceptions.provider import (
+    ProviderConfigError,
+    ProviderConflictError,
+    ProviderNotFoundError,
+    ProviderUpstreamError,
+    ProviderValidationError,
+)
 from exceptions.session import SessionNotFoundError
 from exceptions.source import (
     SourceNotFoundError,
@@ -12,4 +19,9 @@ __all__ = [
     "SourceNotSupportedError",
     "SourceTooLargeError",
     "SessionNotFoundError",
+    "ProviderNotFoundError",
+    "ProviderConflictError",
+    "ProviderValidationError",
+    "ProviderUpstreamError",
+    "ProviderConfigError",
 ]
