@@ -54,6 +54,7 @@ make stop
 
 4. **Access the API documentation**:
    - Swagger UI: http://localhost:5000/docs
+   - Streamlit UI: http://localhost:8501
    - Prefect UI: http://localhost:4200
 
 ## Development
@@ -79,6 +80,32 @@ This command will:
 | `make test` | Run tests with coverage reporting |
 | `make build` | Build and start the application with Docker Compose |
 | `make stop` | Stop the Docker Compose services |
+
+### Streamlit UI
+
+The project includes a Streamlit UI that works with all API endpoints:
+
+- Health (`/health/liveness`, `/health/readiness`)
+- Sources (`/source`)
+- Sessions and messages (`/session`)
+- Chat streaming (`/chat/stream`)
+- Providers (`/provider`)
+
+UI is available at `http://localhost:8501` when running Docker Compose.
+The UI container uses the same `Dockerfile` with `APP_TARGET=ui`.
+
+You can override backend URL for UI with:
+
+```bash
+UI_API_BASE_URL=http://localhost:5000
+```
+
+### Local UI Run (without Docker service)
+
+```bash
+poetry install --with ui
+UI_API_BASE_URL=http://localhost:5000 poetry run streamlit run ui/app.py --server.port 8501 --server.address 0.0.0.0
+```
 
 ### Development Workflow
 

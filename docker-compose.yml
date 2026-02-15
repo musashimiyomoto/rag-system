@@ -32,6 +32,12 @@ services:
       - "5000:5000"
     command: [ "bash", "/docker-entrypoint.sh", "gunicorn", "main:app" ]
 
+  ui:
+    <<: *app
+    ports:
+      - "8501:8501"
+    command: [ "streamlit", "run", "ui/app.py", "--server.port", "8501", "--server.address", "0.0.0.0" ]
+
   postgres:
     image: ${POSTGRES_IMAGE}
     restart: always
