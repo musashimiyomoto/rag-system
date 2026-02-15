@@ -2,7 +2,7 @@ from typing import Any
 
 import streamlit as st
 
-from ui.api_client import ApiResult
+from ui.models import ApiResult
 
 
 def show_result(result: ApiResult, success_message: str | None = None) -> None:

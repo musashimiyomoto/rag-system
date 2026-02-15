@@ -7,7 +7,12 @@ from db.repositories import (
     SourceRepository,
 )
 from enums import SourceStatus
-from exceptions import SessionConflictError, SessionValidationError, SourceNotFoundError
+from exceptions import (
+    SessionConflictError,
+    SessionNotFoundError,
+    SessionValidationError,
+    SourceNotFoundError,
+)
 from schemas import SessionResponse
 
 
@@ -17,6 +22,41 @@ class SessionUsecase:
         self._session_source_repository = SessionSourceRepository()
         self._source_repository = SourceRepository()
         self._message_repository = MessageRepository()
+
+    async def _validate_source_ids(
+        self, session: AsyncSession, source_ids: list[int]
+    ) -> None:
+        if len(source_ids) != len(set(source_ids)):
+            raise SessionValidationError(message="Duplicate source IDs are not allowed")
+
+        for source_id in source_ids:
+            source = await self._source_repository.get_by(session=session, id=source_id)
+
+            if not source:
+                raise SourceNotFoundError(message=f"Source #{source_id} not found")
+
+            if source.status != SourceStatus.COMPLETED:
+                msg = f"Source #{source_id} is not completed"
+                raise SessionConflictError(message=msg)
+
+    async def _build_response(
+        self, session: AsyncSession, session_id: int
+    ) -> SessionResponse:
+        chat_session = await self._session_repository.get_by(
+            session=session, id=session_id
+        )
+        if not chat_session:
+            raise SessionNotFoundError
+
+        session_sources = await self._session_source_repository.get_all(
+            session=session, session_id=session_id
+        )
+        source_ids = [item.source_id for item in session_sources]
+        return SessionResponse(
+            id=chat_session.id,
+            source_ids=sorted(source_ids),
+            created_at=chat_session.created_at,
+        )
 
     async def create_session(
         self, session: AsyncSession, source_ids: list[int]
@@ -31,18 +71,7 @@ class SessionUsecase:
             The created session.
 
         """
-        if len(source_ids) != len(set(source_ids)):
-            raise SessionValidationError(message="Duplicate source IDs are not allowed")
-
-        for source_id in source_ids:
-            source = await self._source_repository.get_by(session=session, id=source_id)
-
-            if not source:
-                raise SourceNotFoundError(message=f"Source #{source_id} not found")
-
-            if source.status != SourceStatus.COMPLETED:
-                msg = f"Source #{source_id} is not completed"
-                raise SessionConflictError(message=msg)
+        await self._validate_source_ids(session=session, source_ids=source_ids)
 
         session_obj = await self._session_repository.create(session=session, data={})
         if source_ids:
@@ -54,9 +83,54 @@ class SessionUsecase:
                 ],
             )
 
-        return SessionResponse(
-            id=session_obj.id, source_ids=source_ids, created_at=session_obj.created_at
+        return await self._build_response(session=session, session_id=session_obj.id)
+
+    async def get_sessions(self, session: AsyncSession) -> list[SessionResponse]:
+        sessions = await self._session_repository.get_all(session=session)
+        sorted_sessions = sorted(
+            sessions,
+            key=lambda item: (item.created_at, item.id),
+            reverse=True,
         )
+        return [
+            await self._build_response(session=session, session_id=chat_session.id)
+            for chat_session in sorted_sessions
+        ]
+
+    async def update_session_sources(
+        self, session: AsyncSession, session_id: int, source_ids: list[int]
+    ) -> SessionResponse:
+        chat_session = await self._session_repository.get_by(
+            session=session, id=session_id
+        )
+        if not chat_session:
+            raise SessionNotFoundError
+
+        await self._validate_source_ids(session=session, source_ids=source_ids)
+
+        current_links = await self._session_source_repository.get_all(
+            session=session, session_id=session_id
+        )
+        current_ids = {link.source_id for link in current_links}
+        new_ids = set(source_ids)
+
+        to_add = sorted(new_ids - current_ids)
+        to_remove = sorted(current_ids - new_ids)
+
+        if to_remove:
+            await self._session_source_repository.delete_many(
+                session=session, session_id=session_id, source_ids=to_remove
+            )
+        if to_add:
+            await self._session_source_repository.create_many(
+                session=session,
+                data=[
+                    {"session_id": session_id, "source_id": source_id}
+                    for source_id in to_add
+                ],
+            )
+
+        return await self._build_response(session=session, session_id=session_id)
 
     async def delete_session(self, session: AsyncSession, session_id: int) -> None:
         """Delete a session.

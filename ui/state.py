@@ -4,11 +4,10 @@ import streamlit as st
 def init_state() -> None:
     """Initialize Streamlit state keys used by the UI."""
     defaults: dict[str, object] = {
-        "api_base_url": "http://api:5000",
-        "selected_session_id": 1,
-        "selected_source_id": 1,
-        "selected_provider_id": 1,
+        "selected_session_id": None,
+        "selected_provider_id": None,
         "selected_model_name": "",
+        "selected_session_source_ids": [],
         "chat_history": {},
     }
     for key, value in defaults.items():

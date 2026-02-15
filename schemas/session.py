@@ -7,6 +7,10 @@ class SessionRequest(BaseModel):
     source_ids: list[int] = Field(default_factory=list, description="Source IDs")
 
 
+class SessionUpdateRequest(BaseModel):
+    source_ids: list[int] = Field(default_factory=list, description="Source IDs")
+
+
 class SessionResponse(BaseModel):
     id: int = Field(default=..., description="ID", gt=0)
 

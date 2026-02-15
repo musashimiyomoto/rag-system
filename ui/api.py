@@ -1,25 +1,11 @@
 import json
-from dataclasses import dataclass
 from typing import Any, Iterator
 
 import httpx
 
+from ui.exceptions import ApiClientError
+from ui.models import ApiResult
 from ui.stream_parser import parse_stream_lines
-
-
-@dataclass
-class ApiResult:
-    ok: bool
-    status_code: int
-    data: Any | None = None
-    detail: str | None = None
-
-
-class ApiClientError(Exception):
-    def __init__(self, status_code: int, detail: str):
-        self.status_code = status_code
-        self.detail = detail
-        super().__init__(f"{status_code}: {detail}")
 
 
 class ApiClient:
@@ -77,6 +63,14 @@ class ApiClient:
 
     def create_session(self, source_ids: list[int]) -> ApiResult:
         return self._request("POST", "/session", json={"source_ids": source_ids})
+
+    def list_sessions(self) -> ApiResult:
+        return self._request("GET", "/session/list")
+
+    def update_session(self, session_id: int, source_ids: list[int]) -> ApiResult:
+        return self._request(
+            "PATCH", f"/session/{session_id}", json={"source_ids": source_ids}
+        )
 
     def list_messages(self, session_id: int) -> ApiResult:
         return self._request("GET", f"/session/{session_id}/message/list")

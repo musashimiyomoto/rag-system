@@ -85,10 +85,8 @@ This command will:
 
 The project includes a Streamlit UI that works with all API endpoints:
 
-- Health (`/health/liveness`, `/health/readiness`)
 - Sources (`/source`)
-- Sessions and messages (`/session`)
-- Chat streaming (`/chat/stream`)
+- Chat (`/chat/stream`, auto session management)
 - Providers (`/provider`)
 
 UI is available at `http://localhost:8501` when running Docker Compose.
