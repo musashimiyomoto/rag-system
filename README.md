@@ -70,13 +70,3 @@ make test
 ## Environment Variables
 
 Base variables are defined in `.env.example`.
-
-## API Workflow
-
-Recommended flow:
-
-1. Create a provider (`/provider`)
-2. Upload a source (`/source`). Supported formats: `pdf`, `txt`, `md`, `docx`, `rtf`, `odt`, `epub`, `html`, `htm`, `pptx`, `xlsx`, `eml`
-3. Wait until source status is `completed`
-4. Create a session (`/session`) with `source_ids`
-5. Call chat stream (`/chat/stream`)
