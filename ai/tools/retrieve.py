@@ -10,8 +10,6 @@ from ai.dependencies import Dependencies
 from db.repositories import SourceRepository
 from settings import chroma_settings, core_settings
 
-PER_SOURCE_CHUNK_LIMIT = 4
-
 
 def _parse_source_id(metadata: Mapping[str, Any] | None) -> int | None:
     if not metadata:
@@ -55,6 +53,7 @@ async def _collect_ranked_chunks(
     session: AsyncSession,
     search_query: str,
     selected_source_ids: list[int],
+    n_results: int,
 ) -> list[tuple[float, int, str]]:
     source_repository = SourceRepository()
     ranked_chunks = []
@@ -69,8 +68,7 @@ async def _collect_ranked_chunks(
 
         source_collection = await chroma_client.get_collection(name=source.collection)
         source_results = await source_collection.query(
-            query_texts=[search_query],
-            n_results=PER_SOURCE_CHUNK_LIMIT,
+            query_texts=[search_query], n_results=n_results
         )
         documents = source_results.get("documents")
         if not documents or not documents[0]:
@@ -142,6 +140,7 @@ async def retrieve(context: RunContext[Dependencies], search_query: str) -> str:
         session=context.deps.session,
         search_query=search_query,
         selected_source_ids=selected_source_ids,
+        n_results=context.deps.n_results,
     )
     if len(ranked_chunks) == 0:
         return "No data results found"

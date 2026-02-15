@@ -4,6 +4,7 @@ from usecases.message import MessageUsecase
 from usecases.provider import ProviderUsecase
 from usecases.session import SessionUsecase
 from usecases.source import SourceUsecase
+from usecases.tool import ToolUsecase
 
 __all__ = [
     "HealthUsecase",
@@ -12,4 +13,5 @@ __all__ = [
     "SessionUsecase",
     "MessageUsecase",
     "ProviderUsecase",
+    "ToolUsecase",
 ]

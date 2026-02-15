@@ -1,102 +1,96 @@
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3120/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Pyright](https://img.shields.io/badge/pyright-checked-informational.svg)](https://github.com/microsoft/pyright/)
+[![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
 [![CI/CD Pipeline](https://github.com/musashimiyomoto/rag-system/actions/workflows/ci.yml/badge.svg)](https://github.com/musashimiyomoto/rag-system/actions/workflows/ci.yml)
 
-------------------------------------------------------------------------
 
 # RAG System
 
+RAG system built with `FastAPI` + `PydanticAI` + `ChromaDB`, with asynchronous source processing via `Prefect` and a `Streamlit` UI.
+
+## Stack
+
+- API: `FastAPI` (`main.py`)
+- UI: `Streamlit` (`ui/app.py`)
+- Database: `PostgreSQL`
+- Vector store: `ChromaDB`
+- Cache/broker: `Redis`
+- Pipeline orchestration: `Prefect`
+
 ## Requirements
 
-- Python 3.11
+- Python `3.11`
 - Poetry
-- Docker and Docker Compose
+- Docker + Docker Compose
 
-## Quick Start with Makefile
+## Quick Start (Docker)
 
-This project includes a comprehensive Makefile that simplifies common development tasks. To see all available commands:
+1. Create `.env`:
 
-```bash
-make help
-```
-
-### Docker Run
-
-1. **Create .env file**:
 ```bash
 cp .env.example .env
 ```
 
-Add your API keys to the `.env` file. Open the file in a text editor and add the required variables in the format `KEY=value`. For example:
-```bash
-CORE_OPENAI_API_KEY=your_openai_api_key_here
-CORE_GOOGLE_API_KEY=your_google_api_key_here
-CORE_GITHUB_API_KEY=your_github_api_key_here
-```
+2. Start all services:
 
-2. **Build and start the application**:
 ```bash
 make build
 ```
-This command will:
-- Automatically copy `.env.example` to `.env` if it doesn't exist
-- Build and start the application using Docker Compose
 
-**Important**: After the `.env` file is created, you need to add your API keys for the chosen model provider. Edit the `.env` file and add the required API keys for your selected AI provider (OpenAI, Google, etc.).
+3. Open:
 
-3. **Stop the application**:
+- API docs: `http://localhost:5000/docs`
+- Streamlit UI: `http://localhost:8501`
+- Prefect UI: `http://localhost:4200`
+
+4. Stop services:
+
 ```bash
 make stop
 ```
 
-4. **Access the API documentation**:
-   - Swagger UI: http://localhost:5000/docs
-   - Prefect UI: http://localhost:4200
+## Local Development
 
-## Development
+Install tooling and dependencies:
 
-### Setup
-
-1. **Install all dependencies and setup pre-commit hooks**:
-```bash
-make install
-```
-This command will:
-- Install all project dependencies including development and test dependencies
-- Set up pre-commit hooks for code quality
-
-### Available Makefile Commands
-
-| Command | Description |
-|---------|-------------|
-| `make help` | Show all available commands with descriptions |
-| `make install` | Install dependencies and setup pre-commit hooks |
-| `make format` | Format code using black and isort |
-| `make check` | Run code quality checks with ruff and pyright |
-| `make test` | Run tests with coverage reporting |
-| `make build` | Build and start the application with Docker Compose |
-| `make stop` | Stop the Docker Compose services |
-
-### Development Workflow
-
-1. **Initial setup**:
 ```bash
 make install
 ```
 
-2. **Before committing code**:
+Useful commands:
+
 ```bash
-make format    # Format your code
-make check     # Run linting and type checks
-make test      # Run tests
+make help
+make format
+make check
+make test
 ```
 
-3. **Build and test the application**:
+## Environment Variables
+
+Base variables are defined in `.env.example`.
+
+## Tools
+
+Chat supports runtime tool selection through query params.
+
+- `provider_id` and `model_name` are required.
+- `tool_ids` is optional and repeatable.
+- Default behavior (when `tool_ids` is omitted): only `retrieve` is enabled.
+
+Example request:
+
 ```bash
-make build     # Start the application
-# Test your changes
-make stop      # Stop when done
+curl -X POST "http://localhost:5000/chat/stream?provider_id=1&model_name=gpt-4.1&tool_ids=retrieve&tool_ids=web_search" \
+  -H "Content-Type: application/json" \
+  -d '{"session_id":1,"message":"What changed in EU AI Act this month?"}'
 ```
+
+Available tools can be fetched via:
+
+```bash
+curl "http://localhost:5000/tool/list"
+```
+
+You can also switch model and tool set on every request within the same session.

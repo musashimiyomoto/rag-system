@@ -7,8 +7,9 @@ from schemas.provider import (
     ProviderResponse,
     ProviderUpdateRequest,
 )
-from schemas.session import SessionRequest, SessionResponse
+from schemas.session import SessionRequest, SessionResponse, SessionUpdateRequest
 from schemas.source import SourceResponse
+from schemas.tool import ToolResponse
 
 __all__ = [
     "HealthResponse",
@@ -18,9 +19,11 @@ __all__ = [
     "ChatResponse",
     "MessageResponse",
     "SessionRequest",
+    "SessionUpdateRequest",
     "SessionResponse",
     "ProviderCreateRequest",
     "ProviderUpdateRequest",
     "ProviderResponse",
     "ProviderModelResponse",
+    "ToolResponse",
 ]

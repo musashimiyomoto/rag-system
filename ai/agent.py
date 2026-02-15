@@ -4,14 +4,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai.dependencies import Dependencies
 from ai.model import get_model
 from ai.prompts import SYSTEM_PROMPT
-from ai.tools import retrieve
+from ai.tools import get_tools
 from db.repositories import ProviderRepository, SourceRepository
+from enums import ToolId
 from exceptions import ProviderConflictError, ProviderNotFoundError
 from utils import decrypt
 
 
 async def generate_agent(
-    session: AsyncSession, provider_id: int, model_name: str
+    session: AsyncSession, provider_id: int, model_name: str, tool_ids: list[ToolId]
 ) -> Agent[Dependencies, str]:
     """Generate the agent.
 
@@ -19,6 +20,7 @@ async def generate_agent(
         session: The database session.
         provider_id: The provider ID.
         model_name: The model name.
+        tool_ids: List of tool ids.
 
     Returns:
         The agent.
@@ -39,7 +41,7 @@ async def generate_agent(
 
     agent = Agent(
         model=model,
-        tools=[retrieve],
+        tools=get_tools(tool_ids=tool_ids),
         deps_type=Dependencies,
         model_settings=model_settings,
     )

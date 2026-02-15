@@ -5,7 +5,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import db, message, session
-from schemas import MessageResponse, SessionRequest, SessionResponse
+from schemas import (
+    MessageResponse,
+    SessionRequest,
+    SessionResponse,
+    SessionUpdateRequest,
+)
 
 router = APIRouter(prefix="/session", tags=["Session"])
 
@@ -19,6 +24,30 @@ async def create_session(
     ],
 ) -> SessionResponse:
     return await usecase.create_session(session=session, source_ids=data.source_ids)
+
+
+@router.get(path="/list")
+async def get_sessions(
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        session.SessionUsecase, Depends(dependency=session.get_session_usecase)
+    ],
+) -> list[SessionResponse]:
+    return await usecase.get_sessions(session=session)
+
+
+@router.patch(path="/{session_id}")
+async def update_session(
+    session_id: Annotated[int, Path(default=...)],
+    data: Annotated[SessionUpdateRequest, Body(default=...)],
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        session.SessionUsecase, Depends(dependency=session.get_session_usecase)
+    ],
+) -> SessionResponse:
+    return await usecase.update_session_sources(
+        session=session, session_id=session_id, source_ids=data.source_ids
+    )
 
 
 @router.get(path="/{session_id}/message/list")

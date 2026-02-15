@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from db.models.base import Base
-from enums import Role
+from enums import Role, ToolId
 
 
 class Message(Base):
@@ -21,4 +21,7 @@ class Message(Base):
     role: Mapped[Role] = mapped_column(comment="Role")
     content: Mapped[str] = mapped_column(comment="Content")
     thinking: Mapped[str | None] = mapped_column(comment="Thinking")
+    provider_id: Mapped[int | None] = mapped_column(comment="Provider ID")
+    model_name: Mapped[str | None] = mapped_column(comment="Model name")
+    tool_ids: Mapped[list[ToolId]] = mapped_column(JSON, comment="Tool IDs")
     timestamp: Mapped[datetime] = mapped_column(comment="Timestamp")

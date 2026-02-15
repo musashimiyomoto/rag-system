@@ -22,7 +22,7 @@ from db.repositories import (
     SessionSourceRepository,
     SourceRepository,
 )
-from enums import Role
+from enums import Role, ToolId
 from exceptions import SessionNotFoundError
 from schemas import ChatRequest, ChatResponse
 
@@ -69,7 +69,13 @@ class ChatUsecase:
         return results
 
     async def save_message_history(
-        self, session: AsyncSession, session_id: int, messages: list[ModelMessage]
+        self,
+        session: AsyncSession,
+        session_id: int,
+        messages: list[ModelMessage],
+        provider_id: int,
+        model_name: str,
+        tool_ids: list[ToolId],
     ) -> None:
         """Save the message to the history.
 
@@ -93,6 +99,9 @@ class ChatUsecase:
                             "session_id": session_id,
                             "content": first_part.content,
                             "timestamp": current_time,
+                            "provider_id": provider_id,
+                            "model_name": model_name,
+                            "tool_ids": tool_ids,
                         }
                     )
                 elif isinstance(first_part, SystemPromptPart) and isinstance(
@@ -104,6 +113,9 @@ class ChatUsecase:
                             "session_id": session_id,
                             "content": second_part.content,
                             "timestamp": current_time,
+                            "provider_id": provider_id,
+                            "model_name": model_name,
+                            "tool_ids": tool_ids,
                         }
                     )
             elif isinstance(message, ModelResponse) and isinstance(
@@ -120,6 +132,9 @@ class ChatUsecase:
                             if isinstance(second_part, ThinkingPart)
                             else None
                         ),
+                        "provider_id": provider_id,
+                        "model_name": model_name,
+                        "tool_ids": tool_ids,
                     }
                 )
 
@@ -130,6 +145,9 @@ class ChatUsecase:
         data: ChatRequest,
         session: AsyncSession,
         agent: Agent[Dependencies, str],
+        provider_id: int,
+        model_name: str,
+        tool_ids: list[ToolId],
     ) -> AsyncGenerator[bytes, None]:
         """Stream the messages.
 
@@ -146,6 +164,9 @@ class ChatUsecase:
             role=Role.USER,
             timestamp=datetime.now(),
             content=data.message,
+            provider_id=provider_id,
+            model_name=model_name,
+            tool_ids=tool_ids,
         ).model_dump_bytes()
 
         chat_session = await self._session_repository.get_by(
@@ -173,8 +194,16 @@ class ChatUsecase:
                     role=Role.AGENT,
                     timestamp=result.timestamp(),
                     content=chunk,
+                    provider_id=provider_id,
+                    model_name=model_name,
+                    tool_ids=tool_ids,
                 ).model_dump_bytes()
 
         await self.save_message_history(
-            session=session, session_id=data.session_id, messages=result.new_messages()
+            session=session,
+            session_id=data.session_id,
+            messages=result.new_messages(),
+            provider_id=provider_id,
+            model_name=model_name,
+            tool_ids=tool_ids,
         )

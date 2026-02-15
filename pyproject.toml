@@ -11,7 +11,7 @@ python = "3.11.*"
 fastapi = { extras = ["standard"], version = "0.115.7" }
 gunicorn = { extras = ["gevent"], version = "23.0.0" }
 redis = { extras = ["hiredis"], version = "6.1.0" }
-pydantic-ai-slim = { extras = ["google", "openai"], version = "1.0.3" }
+pydantic-ai-slim = { extras = ["google", "openai", "duckduckgo"], version = "1.0.3" }
 logfire = { extras = ["fastapi", "sqlalchemy", "redis"], version = "4.6.0" }
 alembic = "1.14.1"
 pydantic = "2.11.7"
@@ -25,6 +25,14 @@ langchain-text-splitters = "0.3.11"
 python-multipart = "0.0.20"
 cryptography = "44.0.1"
 httpx = "0.28.1"
+streamlit = "1.49.1"
+python-docx = "1.2.0"
+striprtf = "0.0.29"
+odfpy = "1.4.1"
+ebooklib = "0.19"
+beautifulsoup4 = "4.13.4"
+python-pptx = "1.0.2"
+openpyxl = "3.1.5"
 
 [tool.poetry.group.dev]
 optional = true
@@ -85,10 +93,10 @@ exclude = ["db/alembic/versions/*.py", "db/alembic/env.py", "ai/prompts/*.py"]
 [tool.ruff.lint.per-file-ignores]
 "*.py" = [
     "C417",    # "Use map instead of list comprehension"
+    "PLR0913", # "Too many arguments in function definition"
 ]
 "tests/*.py" = [
     "S101",    # "Use of `assert` detected"
-    "PLR0913", # "Too many arguments in function definition"
     "S107",    # "Possible hardcoded password assigned to function default"
     "PGH003",  # "Use specific rule codes when ignoring type issues"
 ]

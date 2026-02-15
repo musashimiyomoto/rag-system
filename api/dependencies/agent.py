@@ -7,12 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai.agent import generate_agent
 from ai.dependencies import Dependencies
 from api.dependencies import db
+from enums import ToolId
 
 
 async def get_agent(
     session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
     provider_id: Annotated[int, Query(default=..., gt=0)],
     model_name: Annotated[str, Query(default=..., min_length=1)],
+    tool_ids: Annotated[list[ToolId], Query(default_factory=list)],
 ) -> Agent[Dependencies, str]:
     """Get agent instance by provider runtime configuration.
 
@@ -20,11 +22,15 @@ async def get_agent(
         session: The database session.
         provider_id: The provider ID.
         model_name: The model name.
+        tool_ids: Tool ids.
 
     Returns:
         The agent instance.
 
     """
     return await generate_agent(
-        session=session, provider_id=provider_id, model_name=model_name
+        session=session,
+        provider_id=provider_id,
+        model_name=model_name,
+        tool_ids=tool_ids,
     )
