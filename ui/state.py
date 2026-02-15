@@ -1,3 +1,5 @@
+from typing import Any
+
 import streamlit as st
 
 
@@ -7,6 +9,7 @@ def init_state() -> None:
         "selected_session_id": None,
         "selected_provider_id": None,
         "selected_model_name": "",
+        "selected_tool_ids": [],
         "selected_session_source_ids": [],
         "chat_history": {},
     }
@@ -15,6 +18,6 @@ def init_state() -> None:
             st.session_state[key] = value
 
 
-def get_chat_history(session_id: int) -> list[dict[str, str]]:
+def get_chat_history(session_id: int) -> list[dict[str, Any]]:
     history = st.session_state["chat_history"]
     return history.setdefault(str(session_id), [])

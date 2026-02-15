@@ -22,6 +22,12 @@ def provider_label(provider: dict[str, Any]) -> str:
     return f"{provider_id} - {provider_name} [{status}]"
 
 
+def tool_label(tool: dict[str, Any]) -> str:
+    tool_id = str(tool.get("id", "unknown"))
+    tool_title = str(tool.get("title", tool_id))
+    return f"{tool_title} ({tool_id})"
+
+
 def session_label(
     session_item: int | None, sessions_map: dict[int, dict[str, Any]]
 ) -> str:
@@ -50,6 +56,9 @@ def load_session_messages(client: ApiClient, session_id: int) -> None:
             {
                 "role": str(item.get("role", "")),
                 "content": str(item.get("content", "")),
+                "provider_id": item.get("provider_id"),
+                "model_name": item.get("model_name"),
+                "tool_ids": item.get("tool_ids") or [],
             }
             for item in messages.data
         ]
@@ -218,6 +227,25 @@ def get_provider_context(
     return selected_provider_id, selected_model_name
 
 
+def get_tool_context(
+    client: ApiClient,
+) -> tuple[list[str], dict[str, dict[str, Any]], list[str]] | None:
+    tools_result = client.list_tools()
+    if not (tools_result.ok and isinstance(tools_result.data, list)):
+        show_result(tools_result)
+        return None
+
+    tools = [
+        item for item in tools_result.data if isinstance(item, dict) and item.get("id")
+    ]
+    tools_map = {str(tool["id"]): tool for tool in tools}
+    tool_ids = sorted(tools_map.keys())
+    default_tool_ids = [
+        str(tool["id"]) for tool in tools if bool(tool.get("enabled_by_default"))
+    ]
+    return tool_ids, tools_map, default_tool_ids
+
+
 def get_completed_sources(
     client: ApiClient,
 ) -> tuple[list[int], dict[int, dict[str, Any]]] | None:
@@ -338,7 +366,17 @@ def sync_session_sources(
     st.rerun()
 
 
-def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, str]]:
+def _format_message_metadata(message: dict[str, Any]) -> str:
+    model_name = str(message.get("model_name") or "")
+    tool_ids = message.get("tool_ids") or []
+    if not model_name and not tool_ids:
+        return ""
+    tools_text = ", ".join(str(tool_id) for tool_id in tool_ids) if tool_ids else "-"
+    model_text = model_name or "-"
+    return f"`model: {model_text} | tools: {tools_text}`"
+
+
+def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, Any]]:
     if session_id is None:
         st.info("Session will be created automatically on first message")
         return []
@@ -351,6 +389,9 @@ def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, 
         role = "assistant" if message.get("role") == "agent" else "user"
         with st.chat_message(role):
             st.markdown(message.get("content", ""))
+            metadata_text = _format_message_metadata(message)
+            if metadata_text:
+                st.caption(metadata_text)
 
     return history
 
@@ -379,33 +420,69 @@ def send_prompt(
     session_id: int,
     provider_id: int,
     model_name: str,
+    tool_ids: list[str],
 ) -> None:
     history = get_chat_history(session_id)
-    history.append({"role": "user", "content": prompt})
+    history.append(
+        {
+            "role": "user",
+            "content": prompt,
+            "provider_id": provider_id,
+            "model_name": model_name,
+            "tool_ids": list(tool_ids),
+        }
+    )
     with st.chat_message("user"):
         st.markdown(prompt)
+        metadata_text = _format_message_metadata(history[-1])
+        if metadata_text:
+            st.caption(metadata_text)
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
+        metadata_placeholder = st.empty()
         final_answer = ""
+        chunk_model_name = model_name
+        chunk_tool_ids = list(tool_ids)
         try:
             for chunk in client.stream_chat(
                 session_id=session_id,
                 message=prompt,
                 provider_id=provider_id,
                 model_name=model_name,
+                tool_ids=tool_ids,
             ):
                 role = str(chunk.get("role", ""))
                 content = str(chunk.get("content", ""))
+                model_name_from_chunk = str(chunk.get("model_name", "")) or model_name
+                tool_ids_from_chunk = chunk.get("tool_ids") or tool_ids
                 if role == "agent":
                     final_answer = merge_stream_chunk(final_answer, content)
                     placeholder.markdown(final_answer)
+                    chunk_model_name = model_name_from_chunk
+                    chunk_tool_ids = [str(tool_id) for tool_id in tool_ids_from_chunk]
+                    metadata_placeholder.caption(
+                        _format_message_metadata(
+                            {
+                                "model_name": chunk_model_name,
+                                "tool_ids": chunk_tool_ids,
+                            }
+                        )
+                    )
         except ApiClientError as exc:
             st.error(f"HTTP {exc.status_code}: {exc.detail}")
             return
 
     if final_answer:
-        history.append({"role": "agent", "content": final_answer})
+        history.append(
+            {
+                "role": "agent",
+                "content": final_answer,
+                "provider_id": provider_id,
+                "model_name": chunk_model_name,
+                "tool_ids": chunk_tool_ids,
+            }
+        )
 
 
 def render_chat_tab(client: ApiClient) -> None:
@@ -415,6 +492,25 @@ def render_chat_tab(client: ApiClient) -> None:
     if provider_context is None:
         return
     selected_provider_id, selected_model_name = provider_context
+
+    tools_context = get_tool_context(client=client)
+    if tools_context is None:
+        return
+    tool_ids, tools_map, default_tool_ids = tools_context
+    if not st.session_state["selected_tool_ids"]:
+        st.session_state["selected_tool_ids"] = default_tool_ids
+    selected_tool_ids = st.multiselect(
+        "Tools for this request",
+        options=tool_ids,
+        default=[
+            tool_id
+            for tool_id in st.session_state["selected_tool_ids"]
+            if tool_id in tools_map
+        ],
+        format_func=lambda tool_id: tool_label(tools_map[tool_id]),
+        key="chat_tools_selector",
+    )
+    st.session_state["selected_tool_ids"] = selected_tool_ids
 
     sources_context = get_completed_sources(client=client)
     if sources_context is None:
@@ -452,6 +548,7 @@ def render_chat_tab(client: ApiClient) -> None:
         session_id=active_session_id,
         provider_id=selected_provider_id,
         model_name=selected_model_name,
+        tool_ids=selected_tool_ids,
     )
 
 

@@ -70,3 +70,27 @@ make test
 ## Environment Variables
 
 Base variables are defined in `.env.example`.
+
+## Tools
+
+Chat supports runtime tool selection through query params.
+
+- `provider_id` and `model_name` are required.
+- `tool_ids` is optional and repeatable.
+- Default behavior (when `tool_ids` is omitted): only `retrieve` is enabled.
+
+Example request:
+
+```bash
+curl -X POST "http://localhost:5000/chat/stream?provider_id=1&model_name=gpt-4.1&tool_ids=retrieve&tool_ids=web_search" \
+  -H "Content-Type: application/json" \
+  -d '{"session_id":1,"message":"What changed in EU AI Act this month?"}'
+```
+
+Available tools can be fetched via:
+
+```bash
+curl "http://localhost:5000/tool/list"
+```
+
+You can also switch model and tool set on every request within the same session.

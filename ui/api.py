@@ -101,12 +101,25 @@ class ApiClient:
     def provider_models(self, provider_id: int) -> ApiResult:
         return self._request("GET", f"/provider/{provider_id}/models")
 
+    def list_tools(self) -> ApiResult:
+        return self._request("GET", "/tool/list")
+
     def stream_chat(
-        self, session_id: int, message: str, provider_id: int, model_name: str
+        self,
+        session_id: int,
+        message: str,
+        provider_id: int,
+        model_name: str,
+        tool_ids: list[str],
     ) -> Iterator[dict[str, Any]]:
         url = f"{self.base_url}/chat/stream"
         payload = {"session_id": session_id, "message": message}
-        params = {"provider_id": provider_id, "model_name": model_name}
+        params: dict[str, Any] = {
+            "provider_id": provider_id,
+            "model_name": model_name,
+        }
+        if tool_ids:
+            params["tool_ids"] = tool_ids
 
         try:
             timeout = httpx.Timeout(connect=30.0, write=30.0, read=600.0, pool=30.0)
