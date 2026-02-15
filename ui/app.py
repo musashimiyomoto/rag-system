@@ -58,7 +58,23 @@ def load_session_messages(client: ApiClient, session_id: int) -> None:
 def render_sources_tab(client: ApiClient) -> None:
     st.subheader("Sources")
     with st.form("upload_source"):
-        file = st.file_uploader("Upload source", type=["pdf", "txt"])
+        file = st.file_uploader(
+            "Upload source",
+            type=[
+                "pdf",
+                "txt",
+                "md",
+                "docx",
+                "rtf",
+                "odt",
+                "epub",
+                "html",
+                "htm",
+                "pptx",
+                "xlsx",
+                "eml",
+            ],
+        )
         submitted = st.form_submit_button("Upload")
         if submitted:
             if not file:

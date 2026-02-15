@@ -61,6 +61,50 @@ class TestCreateSource(BaseTestCase):
         assert source_file is not None
         assert source_file.content == file_content
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("source_name", "source_type"),
+        [
+            ("test.md", SourceType.MD),
+            ("test.docx", SourceType.DOCX),
+            ("test.rtf", SourceType.RTF),
+            ("test.odt", SourceType.ODT),
+            ("test.epub", SourceType.EPUB),
+            ("test.html", SourceType.HTML),
+            ("test.htm", SourceType.HTM),
+            ("test.pptx", SourceType.PPTX),
+            ("test.xlsx", SourceType.XLSX),
+            ("test.eml", SourceType.EML),
+        ],
+    )
+    async def test_ok_for_supported_extensions(
+        self, source_name: str, source_type: SourceType
+    ) -> None:
+        file_content = b"Sample content"
+        file = UploadFile(
+            file=io.BytesIO(file_content),
+            filename=source_name,
+            size=len(file_content),
+        )
+
+        response = await self.client.post(
+            url=self.url,
+            files={"file": (file.filename, file.file, "application/octet-stream")},
+        )
+
+        data = await self.assert_response_ok(response=response)
+        assert data["name"] == source_name
+        assert data["type"] == source_type.value
+
+    @pytest.mark.asyncio
+    async def test_json_is_not_supported(self) -> None:
+        response = await self.client.post(
+            url=self.url,
+            files={"file": ("test.json", io.BytesIO(b'{"a": 1}'), "application/json")},
+        )
+
+        assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
+
 
 class TestGetSources(BaseTestCase):
     url = "/source/list"

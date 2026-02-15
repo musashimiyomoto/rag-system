@@ -94,6 +94,44 @@ class TestExtractText(BaseTestCase):
 
         assert text == "First page\nSecond page"
 
+    @pytest.mark.asyncio
+    async def test_md(self):
+        text = _extract_text(
+            source_type=SourceType.MD,
+            content=b"# Header\n\nBody",
+        )
+        assert text == "# Header\nBody"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("source_type", [SourceType.HTML, SourceType.HTM])
+    async def test_html(self, source_type: SourceType):
+        with mock.patch(
+            "flows.process_source._extract_html_text",
+            return_value="Title\n\nBody",
+        ):
+            text = _extract_text(source_type=source_type, content=b"<html></html>")
+        assert text == "Title\nBody"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("source_type", "helper_name"),
+        [
+            (SourceType.DOCX, "_extract_docx_text"),
+            (SourceType.RTF, "_extract_rtf_text"),
+            (SourceType.ODT, "_extract_odt_text"),
+            (SourceType.EPUB, "_extract_epub_text"),
+            (SourceType.PPTX, "_extract_pptx_text"),
+            (SourceType.XLSX, "_extract_xlsx_text"),
+            (SourceType.EML, "_extract_eml_text"),
+        ],
+    )
+    async def test_supported_binary_types(
+        self, source_type: SourceType, helper_name: str
+    ):
+        with mock.patch(f"flows.process_source.{helper_name}", return_value="A\n\nB"):
+            text = _extract_text(source_type=source_type, content=b"binary")
+        assert text == "A\nB"
+
 
 class TestSummarizeSourceTask(BaseTestCase):
     @pytest_asyncio.fixture(autouse=True)
