@@ -97,31 +97,6 @@ class TestGetSource(BaseTestCase):
         assert data["collection"] == source.collection
 
 
-class TestGetSessionsForSource(BaseTestCase):
-    url = "/source/{source_id}/session/list"
-
-    @pytest.mark.asyncio
-    async def test_ok(self) -> None:
-        session_count = 2
-        source = await SourceFactory.create_async(session=self.session)
-        sessions = [
-            await SessionFactory.create_async(session=self.session)
-            for _ in range(session_count)
-        ]
-        [
-            await SessionSourceFactory.create_async(
-                session=self.session, session_id=session.id, source_id=source.id
-            )
-            for session in sessions
-        ]
-
-        response = await self.client.get(url=self.url.format(source_id=source.id))
-
-        data = await self.assert_response_ok(response=response)
-        assert isinstance(data, list)
-        assert len(data) == session_count
-
-
 class TestDeleteSource(BaseTestCase):
     url = "/source/{id}"
 

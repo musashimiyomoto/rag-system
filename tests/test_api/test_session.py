@@ -48,9 +48,11 @@ class TestCreateSession(BaseTestCase):
         assert data["source_ids"] == [source_1.id, source_2.id]
 
     @pytest.mark.asyncio
-    async def test_empty_source_ids_returns_400(self) -> None:
+    async def test_empty_source_ids(self) -> None:
         response = await self.client.post(url=self.url, json={"source_ids": []})
-        assert response.status_code == HTTPStatus.BAD_REQUEST
+        data = await self.assert_response_ok(response=response)
+        assert data["id"] is not None
+        assert data["source_ids"] == []
 
     @pytest.mark.asyncio
     async def test_duplicate_source_ids_returns_400(self) -> None:

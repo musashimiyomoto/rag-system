@@ -7,7 +7,7 @@ from db.repositories import (
     SourceRepository,
 )
 from enums import SourceStatus
-from exceptions import SessionConflictError, SourceNotFoundError
+from exceptions import SessionConflictError, SessionValidationError, SourceNotFoundError
 from schemas import SessionResponse
 
 
@@ -31,6 +31,9 @@ class SessionUsecase:
             The created session.
 
         """
+        if len(source_ids) != len(set(source_ids)):
+            raise SessionValidationError(message="Duplicate source IDs are not allowed")
+
         for source_id in source_ids:
             source = await self._source_repository.get_by(session=session, id=source_id)
 
@@ -42,13 +45,14 @@ class SessionUsecase:
                 raise SessionConflictError(message=msg)
 
         session_obj = await self._session_repository.create(session=session, data={})
-        await self._session_source_repository.create_many(
-            session=session,
-            data=[
-                {"session_id": session_obj.id, "source_id": source_id}
-                for source_id in source_ids
-            ],
-        )
+        if source_ids:
+            await self._session_source_repository.create_many(
+                session=session,
+                data=[
+                    {"session_id": session_obj.id, "source_id": source_id}
+                    for source_id in source_ids
+                ],
+            )
 
         return SessionResponse(
             id=session_obj.id, source_ids=source_ids, created_at=session_obj.created_at
