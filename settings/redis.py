@@ -1,7 +1,7 @@
 from pydantic import Field
 from pydantic_settings import SettingsConfigDict
 
-from .base import BaseSettings
+from settings.base import BaseSettings
 
 
 class RedisSettings(BaseSettings):

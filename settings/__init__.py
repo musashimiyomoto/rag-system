@@ -4,6 +4,7 @@ from settings.postgres import postgres_settings
 from settings.prefect import prefect_settings
 from settings.qdrant import qdrant_settings
 from settings.redis import redis_settings
+from settings.sentry import sentry_settings
 
 __all__ = [
     "postgres_settings",
@@ -12,4 +13,5 @@ __all__ = [
     "core_settings",
     "BASE_PATH",
     "redis_settings",
+    "sentry_settings",
 ]

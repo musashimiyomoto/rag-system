@@ -1,4 +1,5 @@
 import logfire
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6,6 +7,17 @@ from fastapi.responses import JSONResponse
 from api.routers import chat, health, provider, session, source, tool
 from db.sessions import async_engine
 from exceptions import BaseError
+from settings import sentry_settings
+
+if sentry_settings.dsn is not None:
+    sentry_sdk.init(
+        dsn=sentry_settings.dsn,
+        send_default_pii=True,
+        traces_sample_rate=1.0,
+        profile_session_sample_rate=1.0,
+        profile_lifecycle="trace",
+        enable_logs=True,
+    )
 
 app = FastAPI()
 
