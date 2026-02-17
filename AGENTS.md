@@ -7,7 +7,7 @@ Guidelines for coding agents working in this repository.
 This project provides:
 - FastAPI backend for sources, sessions, providers, and chat streaming
 - Prefect flow for asynchronous source indexing/summarization
-- ChromaDB for vector retrieval
+- Qdrant for vector retrieval
 - Streamlit UI for manual workflows
 
 ## Architecture Notes

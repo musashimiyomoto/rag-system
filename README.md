@@ -7,14 +7,14 @@
 
 # RAG System
 
-RAG system built with `FastAPI` + `PydanticAI` + `ChromaDB`, with asynchronous source processing via `Prefect` and a `Streamlit` UI.
+RAG system built with `FastAPI` + `PydanticAI` + `Qdrant`, with asynchronous source processing via `Prefect` and a `Streamlit` UI.
 
 ## Stack
 
 - API: `FastAPI` (`main.py`)
 - UI: `Streamlit` (`ui/app.py`)
 - Database: `PostgreSQL`
-- Vector store: `ChromaDB`
+- Vector store: `Qdrant`
 - Cache/broker: `Redis`
 - Pipeline orchestration: `Prefect`
 

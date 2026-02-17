@@ -18,7 +18,7 @@ x-app: &app
   depends_on:
     postgres:
       condition: service_healthy
-    chroma:
+    qdrant:
       condition: service_healthy
     redis:
       condition: service_healthy
@@ -76,22 +76,22 @@ services:
     volumes:
       - redis_data:/data
 
-  chroma:
-    image: ${CHROMA_IMAGE}
+  qdrant:
+    image: ${QDRANT_IMAGE}
     restart: always
     healthcheck:
       test:
         - "CMD"
         - "/bin/bash"
         - "-c"
-        - "cat < /dev/null > /dev/tcp/localhost/8000"
+        - "cat < /dev/null > /dev/tcp/localhost/6333"
       interval: 5s
       timeout: 3s
       retries: 40
     ports:
-      - "8000:8000"
+      - "6333:6333"
     volumes:
-      - chroma_data:/data
+      - qdrant_data:/qdrant/storage
 
   prefect-server:
     <<: *prefect
@@ -128,5 +128,5 @@ services:
 volumes:
   postgres_data:
   prefect_data:
-  chroma_data:
+  qdrant_data:
   redis_data:
