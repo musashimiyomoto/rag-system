@@ -11,6 +11,10 @@ from qdrant_client.http import models
 from settings import qdrant_settings
 
 
+def _normalize_point_id(point_id: str) -> str:
+    return str(uuid5(namespace=qdrant_settings.point_id_namespace, name=point_id))
+
+
 def _resolve_distance() -> models.Distance:
     distance_map = {
         "COSINE": models.Distance.COSINE,
@@ -138,8 +142,3 @@ def relevance_score(score: float) -> float:
         return -float(score)
 
     return float(score)
-
-
-def _normalize_point_id(point_id: str) -> str:
-    """Map external string IDs to valid Qdrant UUID IDs deterministically."""
-    return str(uuid5(namespace=qdrant_settings.point_id_namespace, name=point_id))

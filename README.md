@@ -77,7 +77,8 @@ Chat supports runtime tool selection through query params.
 
 - `provider_id` and `model_name` are required.
 - `tool_ids` is optional and repeatable.
-- Default behavior (when `tool_ids` is omitted): only `retrieve` is enabled.
+- Default behavior (when `tool_ids` is omitted): tools marked
+  `enabled_by_default` are enabled (currently `retrieve` and `web_search`).
 
 Example request:
 

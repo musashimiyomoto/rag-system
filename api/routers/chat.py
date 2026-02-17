@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai.dependencies import Dependencies
+from ai.dependencies import AgentDeps
 from api.dependencies import agent, chat, db
 from constants import MEDIA_TYPE
 from enums import ToolId
@@ -20,9 +20,7 @@ async def chat_stream(
     model_name: Annotated[str, Query(default=..., min_length=1)],
     tool_ids: Annotated[list[ToolId], Query(default_factory=list)],
     session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
-    agent: Annotated[
-        agent.Agent[Dependencies, str], Depends(dependency=agent.get_agent)
-    ],
+    agent: Annotated[agent.Agent[AgentDeps, str], Depends(dependency=agent.get_agent)],
     usecase: Annotated[chat.ChatUsecase, Depends(dependency=chat.get_chat_usecase)],
 ) -> StreamingResponse:
     return StreamingResponse(

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from ai.dependencies import Dependencies
+from ai.dependencies import AgentDeps
 from api.dependencies import agent, db
 from db.models import Base
 from main import app
@@ -60,8 +60,8 @@ async def test_client(test_session: AsyncSession) -> AsyncGenerator[AsyncClient,
     async def override_get_session():
         yield test_session
 
-    async def override_get_agent() -> Agent[Dependencies, str]:
-        return Agent(model=TestModel(), deps_type=Dependencies, model_settings=None)
+    async def override_get_agent() -> Agent[AgentDeps, str]:
+        return Agent(model=TestModel(), deps_type=AgentDeps, model_settings=None)
 
     app.dependency_overrides[db.get_session] = override_get_session
     app.dependency_overrides[agent.get_agent] = override_get_agent
