@@ -1,0 +1,16 @@
+{
+	"recommendations": [
+    "astral-sh.ty",
+    "charliermarsh.ruff",
+    "ms-python.debugpy",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.vscode-python-envs",
+    "redhat.vscode-xml",
+    "redhat.vscode-yaml",
+  ],
+	"unwantedRecommendations": [
+    "ms-python.black-formatter",
+    "ms-python.flake8"
+  ]
+}
