@@ -44,6 +44,10 @@ When implementing changes, preserve this layering:
 
 - Keep changes minimal and scoped to the request.
 - Do not refactor unrelated modules in the same patch.
+- Prefer the simplest implementation that satisfies the requirement.
+- Avoid unnecessary abstractions, overengineering, and premature optimization.
+- Keep code clean and readable: clear naming, small focused functions, and consistent style.
+- Add concise docstrings for new or changed public modules, classes, and functions.
 - Avoid breaking public endpoint contracts unless explicitly requested.
 - If contract changes are required, update:
   - request/response schemas
