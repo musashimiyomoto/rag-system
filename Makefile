@@ -1,5 +1,5 @@
 DOCKER_COMPOSE_FILE := docker-compose.yml
-POETRY := poetry
+POETRY := $(shell command -v poetry 2>/dev/null || echo $$HOME/.local/bin/poetry)
 PYTHON_VERSION := 3.11
 
 GREEN := \033[0;32m
@@ -17,9 +17,14 @@ install:
 	curl -sSL https://install.python-poetry.org | python3 -
 	@echo "$(GREEN)Poetry installed!$(NC)"
 
-	@echo "$(BLUE)Installing python $(PYTHON_VERSION)...$(NC)"
-	$(POETRY) python install $(PYTHON_VERSION) --reinstall
-	@echo "$(GREEN)Python $(PYTHON_VERSION) installed!$(NC)"
+	@echo "$(BLUE)Checking python $(PYTHON_VERSION)...$(NC)"
+	@if $(POETRY) python list | grep -q "@$(PYTHON_VERSION)"; then \
+		echo "$(GREEN)Python $(PYTHON_VERSION) already installed, skipping.$(NC)"; \
+	else \
+		echo "$(BLUE)Installing python $(PYTHON_VERSION)...$(NC)"; \
+		$(POETRY) python install $(PYTHON_VERSION); \
+		echo "$(GREEN)Python $(PYTHON_VERSION) installed!$(NC)"; \
+	fi
 
 	@echo "$(BLUE)Installing dependencies...$(NC)"
 	$(POETRY) install --with dev,test
