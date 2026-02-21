@@ -14,13 +14,12 @@ from pydantic_ai.messages import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai.dependencies import Dependencies
+from ai.dependencies import AgentDeps
+from ai.deps_builder import build_agent_deps
 from ai.prompts import SYSTEM_PROMPT
 from db.repositories import (
     MessageRepository,
     SessionRepository,
-    SessionSourceRepository,
-    SourceRepository,
 )
 from enums import Role, ToolId
 from exceptions import SessionNotFoundError
@@ -31,8 +30,6 @@ class ChatUsecase:
     def __init__(self):
         self._message_repository = MessageRepository()
         self._session_repository = SessionRepository()
-        self._session_source_repository = SessionSourceRepository()
-        self._source_repository = SourceRepository()
 
     async def get_message_history(
         self, session: AsyncSession, session_id: int
@@ -144,7 +141,7 @@ class ChatUsecase:
         self,
         data: ChatRequest,
         session: AsyncSession,
-        agent: Agent[Dependencies, str],
+        agent: Agent[AgentDeps, str],
         provider_id: int,
         model_name: str,
         tool_ids: list[ToolId],
@@ -175,16 +172,11 @@ class ChatUsecase:
         if not chat_session:
             raise SessionNotFoundError
 
-        source_ids = [
-            source_session.source_id
-            for source_session in await self._session_source_repository.get_all(
-                session=session, session_id=data.session_id
-            )
-        ]
-
         async with agent.run_stream(
             data.message,
-            deps=Dependencies(session=session, source_ids=source_ids),
+            deps=await build_agent_deps(
+                session=session, session_id=data.session_id, tool_ids=tool_ids
+            ),
             message_history=await self.get_message_history(
                 session=session, session_id=data.session_id
             ),

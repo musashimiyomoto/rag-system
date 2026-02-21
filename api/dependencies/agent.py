@@ -5,7 +5,7 @@ from pydantic_ai import Agent
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.agent import generate_agent
-from ai.dependencies import Dependencies
+from ai.dependencies import AgentDeps
 from api.dependencies import db
 from enums import ToolId
 
@@ -15,7 +15,7 @@ async def get_agent(
     provider_id: Annotated[int, Query(default=..., gt=0)],
     model_name: Annotated[str, Query(default=..., min_length=1)],
     tool_ids: Annotated[list[ToolId], Query(default_factory=list)],
-) -> Agent[Dependencies, str]:
+) -> Agent[AgentDeps, str]:
     """Get agent instance by provider runtime configuration.
 
     Args:

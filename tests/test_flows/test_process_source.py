@@ -18,18 +18,16 @@ from tests.factories import ProviderFactory, SourceFactory, SourceFileFactory
 
 class TestIndexSourceTask(BaseTestCase):
     @pytest_asyncio.fixture(autouse=True)
-    async def _mock_chromadb(self) -> AsyncGenerator[mock.MagicMock, None]:
-        mock_collection = mock.AsyncMock()
-        mock_collection.add.return_value = None
-
-        async def mock_get_or_create_collection(name: str):
-            return mock_collection
-
-        with mock.patch(
-            "flows.process_source.get_or_create_collection",
-            side_effect=mock_get_or_create_collection,
+    async def _mock_vector_store(self) -> AsyncGenerator[mock.MagicMock, None]:
+        with (
+            mock.patch(
+                "flows.process_source.ensure_collection"
+            ) as mock_ensure_collection,
+            mock.patch("flows.process_source.upsert_chunks") as mock_upsert_chunks,
         ):
-            yield mock_collection
+            mock_ensure_collection.return_value = None
+            mock_upsert_chunks.return_value = None
+            yield mock_upsert_chunks
 
     @pytest.mark.asyncio
     async def test_success(self, test_session: AsyncSession):
@@ -173,22 +171,6 @@ class TestSummarizeSourceTask(BaseTestCase):
 
 
 class TestCompleteProcessingSourceTask(BaseTestCase):
-    @pytest_asyncio.fixture(autouse=True)
-    async def _mock_chroma_client(self) -> AsyncGenerator[mock.MagicMock, None]:
-        self.mock_source_index_collection = mock.AsyncMock()
-        self.mock_source_index_collection.upsert.return_value = None
-
-        mock_chroma_client = mock.AsyncMock()
-        mock_chroma_client.get_or_create_collection.return_value = (
-            self.mock_source_index_collection
-        )
-
-        with mock.patch(
-            "flows.process_source.chromadb.AsyncHttpClient",
-            return_value=mock_chroma_client,
-        ):
-            yield self.mock_source_index_collection
-
     @pytest.mark.asyncio
     async def test_success(self, test_session: AsyncSession):
         source = await SourceFactory.create_async(session=self.session)
@@ -199,7 +181,10 @@ class TestCompleteProcessingSourceTask(BaseTestCase):
         mock_context_manager.__aexit__.return_value = None
         mock_async_session = mock.Mock(return_value=mock_context_manager)
 
-        with mock.patch("flows.process_source.async_session", mock_async_session):
+        with (
+            mock.patch("flows.process_source.async_session", mock_async_session),
+            mock.patch("flows.process_source.upsert_chunks") as mock_upsert_chunks,
+        ):
             await _complete_processing_source.fn(
                 source_id=source.id, summary=test_summary
             )
@@ -207,4 +192,4 @@ class TestCompleteProcessingSourceTask(BaseTestCase):
             await self.session.refresh(source)
             assert source.status == SourceStatus.COMPLETED
             assert source.summary == test_summary
-            self.mock_source_index_collection.upsert.assert_awaited_once()
+            mock_upsert_chunks.assert_awaited_once()

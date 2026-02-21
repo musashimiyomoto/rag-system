@@ -1,7 +1,7 @@
 from pydantic_ai import Agent, RunContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai.dependencies import Dependencies
+from ai.dependencies import AgentDeps
 from ai.model import get_model
 from ai.prompts import SYSTEM_PROMPT
 from ai.tools import get_tools
@@ -13,7 +13,7 @@ from utils import decrypt
 
 async def generate_agent(
     session: AsyncSession, provider_id: int, model_name: str, tool_ids: list[ToolId]
-) -> Agent[Dependencies, str]:
+) -> Agent[AgentDeps, str]:
     """Generate the agent.
 
     Args:
@@ -42,12 +42,12 @@ async def generate_agent(
     agent = Agent(
         model=model,
         tools=get_tools(tool_ids=tool_ids),
-        deps_type=Dependencies,
+        deps_type=AgentDeps,
         model_settings=model_settings,
     )
 
     @agent.instructions
-    async def generate_instructions(context: RunContext[Dependencies]) -> str:
+    async def generate_instructions(context: RunContext[AgentDeps]) -> str:
         source_summaries = []
         for source_id in context.deps.source_ids:
             source = await SourceRepository().get_by(

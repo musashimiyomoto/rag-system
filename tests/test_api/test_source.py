@@ -145,13 +145,14 @@ class TestDeleteSource(BaseTestCase):
     url = "/source/{id}"
 
     @pytest_asyncio.fixture(autouse=True)
-    async def _mock_chroma(self) -> AsyncGenerator[mock.MagicMock, None]:
-        mock_client = mock.AsyncMock()
-        mock_client.get_or_create_collection.return_value = mock.AsyncMock()
-        mock_client.delete_collection.return_value = None
-
-        with mock.patch("chromadb.AsyncHttpClient", return_value=mock_client):
-            yield mock_client
+    async def _mock_vector_store(self) -> AsyncGenerator[mock.MagicMock, None]:
+        with (
+            mock.patch("usecases.source.delete_collection") as mock_delete_collection,
+            mock.patch("usecases.source.delete_points") as mock_delete_points,
+        ):
+            mock_delete_collection.return_value = None
+            mock_delete_points.return_value = None
+            yield mock_delete_points
 
     @pytest.mark.asyncio
     async def test_ok(self) -> None:

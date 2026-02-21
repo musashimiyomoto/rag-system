@@ -2,10 +2,10 @@ import uuid
 from pathlib import Path
 from typing import BinaryIO
 
-import chromadb
 from prefect.deployments import run_deployment
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ai.vector_store import delete_collection, delete_points
 from db.repositories import (
     SessionSourceRepository,
     SourceFileRepository,
@@ -20,7 +20,7 @@ from exceptions import (
 )
 from flows import deploy_process_source_flow
 from schemas import SourceResponse
-from settings import chroma_settings, core_settings
+from settings import core_settings
 
 
 class SourceUsecase:
@@ -150,17 +150,9 @@ class SourceUsecase:
                 message="Source is used by one or more sessions and cannot be deleted"
             )
 
-        chroma_client = await chromadb.AsyncHttpClient(
-            host=chroma_settings.host,
-            port=chroma_settings.port,
+        await delete_collection(name=source.collection)
+        await delete_points(
+            collection=core_settings.sources_index_collection, ids=[f"source-{id}"]
         )
-
-        if await chroma_client.get_or_create_collection(name=source.collection):
-            await chroma_client.delete_collection(name=source.collection)
-
-        source_index = await chroma_client.get_or_create_collection(
-            name=core_settings.sources_index_collection
-        )
-        await source_index.delete(ids=[f"source-{id}"])
 
         await self._source_repository.delete_by(session=session, id=id)

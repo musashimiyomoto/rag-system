@@ -3,19 +3,18 @@ from email import message_from_bytes
 from io import BytesIO
 from uuid import UUID
 
-import chromadb
-from chromadb.api.models.AsyncCollection import AsyncCollection
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from prefect import flow, task
 from pypdf import PdfReader
 
 from ai.providers import list_provider_models
 from ai.summarize import summarize
+from ai.vector_store import ensure_collection, upsert_chunks
 from constants import UTF8
 from db.repositories import ProviderRepository, SourceFileRepository, SourceRepository
 from db.sessions import async_session
 from enums.source import SourceStatus, SourceType
-from settings import BASE_PATH, chroma_settings, core_settings, prefect_settings
+from settings import BASE_PATH, core_settings, prefect_settings
 from utils import decrypt
 
 
@@ -157,31 +156,29 @@ async def deploy_process_source_flow(source_id: int) -> UUID:
     )
 
 
-async def get_or_create_collection(name: str) -> AsyncCollection:
-    """Get or create a ChromaDB collection.
+async def get_or_create_collection(name: str) -> str:
+    """Ensure Qdrant collection exists and return its name.
 
     Args:
         name: The collection name.
 
     Returns:
-        The ChromaDB collection instance.
+        The collection name.
 
     """
-    client = await chromadb.AsyncHttpClient(
-        host=chroma_settings.host,
-        port=chroma_settings.port,
-    )
-    return await client.get_or_create_collection(name=name)
+    await ensure_collection(name=name)
+    return name
 
 
-async def get_source_content(source_id: int) -> tuple[str, SourceType, bytes]:
+async def get_source_content(source_id: int) -> tuple[str, str, SourceType, bytes]:
     """Get source metadata and binary file content from PostgreSQL.
 
     Args:
         source_id: The source ID.
 
     Returns:
-        A tuple containing collection name, source type and binary content.
+        A tuple containing collection name, source name, source type and binary
+        content.
 
     Raises:
         ValueError: If source or source file is not found.
@@ -212,7 +209,7 @@ async def get_source_content(source_id: int) -> tuple[str, SourceType, bytes]:
             msg = f"For source №{source_id} not found file!"
             raise ValueError(msg)
 
-    return source.collection, source.type, source_file.content
+    return source.collection, source.name, source.type, source_file.content
 
 
 def _extract_text(source_type: SourceType, content: bytes) -> str:
@@ -290,16 +287,11 @@ async def _complete_processing_source(source_id: int, summary: str) -> None:
             msg = f"Source №{source_id} not found!"
             raise ValueError(msg)
 
-    chroma_client = await chromadb.AsyncHttpClient(
-        host=chroma_settings.host, port=chroma_settings.port
-    )
-    source_index_collection = await chroma_client.get_or_create_collection(
-        name=core_settings.sources_index_collection
-    )
-    await source_index_collection.upsert(
+    await upsert_chunks(
+        collection=core_settings.sources_index_collection,
         ids=[f"source-{source.id}"],
-        documents=[summary],
-        metadatas=[
+        texts=[summary],
+        payloads=[
             {
                 "source_id": source.id,
                 "source_name": source.name,
@@ -311,7 +303,7 @@ async def _complete_processing_source(source_id: int, summary: str) -> None:
 
 @task(name="Index Source")
 async def _index_source(source_id: int) -> list[str]:
-    """Index the source by splitting it into chunks and storing in ChromaDB.
+    """Index the source by splitting it into chunks and storing in Qdrant.
 
     Args:
         source_id: The source ID.
@@ -320,7 +312,7 @@ async def _index_source(source_id: int) -> list[str]:
         List of source chunks.
 
     """
-    collection_name, source_type, content = await get_source_content(
+    collection_name, source_name, source_type, content = await get_source_content(
         source_id=source_id
     )
 
@@ -330,7 +322,20 @@ async def _index_source(source_id: int) -> list[str]:
         text=_extract_text(source_type=source_type, content=content)
     )
 
-    await collection.add(ids=[str(i) for i in range(len(chunks))], documents=chunks)
+    await upsert_chunks(
+        collection=collection,
+        ids=[str(i) for i in range(len(chunks))],
+        texts=chunks,
+        payloads=[
+            {
+                "source_id": source_id,
+                "source_name": source_name,
+                "source_type": source_type.value,
+                "chunk_id": i,
+            }
+            for i in range(len(chunks))
+        ],
+    )
 
     return chunks
 
@@ -383,7 +388,7 @@ async def process_source(source_id: int) -> None:
     """Process the source flow: index, summarize and complete processing.
 
     This flow handles the complete source processing pipeline:
-    1. Index the source by splitting into chunks and storing in ChromaDB
+    1. Index the source by splitting into chunks and storing in Qdrant
     2. Summarize the source content
     3. Mark the source as completed with the summary
 

@@ -5,7 +5,7 @@ import httpx
 from sqlalchemy import text
 
 from db.sessions import async_session
-from settings import chroma_settings, prefect_settings
+from settings import prefect_settings, qdrant_settings
 
 
 class HealthUsecase:
@@ -23,17 +23,17 @@ class HealthUsecase:
         except Exception:
             return False
 
-    async def check_chroma(self) -> bool:
-        """Check Chroma connectivity.
+    async def check_qdrant(self) -> bool:
+        """Check Qdrant connectivity.
 
         Returns:
-            True if chroma is healthy, False otherwise.
+            True if qdrant is healthy, False otherwise.
 
         """
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{chroma_settings.url}/api/v2/heartbeat",
+                    f"{qdrant_settings.url}/healthz",
                     timeout=5.0,
                 )
                 return response.status_code == HTTPStatus.OK
@@ -66,7 +66,7 @@ class HealthUsecase:
         """
         tasks = [
             ("postgres", self.check_postgres()),
-            ("chroma", self.check_chroma()),
+            ("qdrant", self.check_qdrant()),
             ("prefect", self.check_prefect()),
         ]
 
