@@ -112,6 +112,70 @@ class ApiClient:
             files={"file": (filename, file_content)},
         )
 
+    def introspect_db_source(
+        self, source_type: str, credentials: dict[str, Any], schema: str | None = None
+    ) -> ApiResult:
+        """Introspect available tables and columns for DB source.
+
+        Args:
+            source_type: Source type identifier (postgres or clickhouse).
+            credentials: Source DB credentials.
+            schema: Optional schema/database filter.
+
+        Returns:
+            Introspection response.
+
+        """
+        payload: dict[str, Any] = {
+            "type": source_type,
+            "credentials": credentials,
+        }
+        if schema:
+            payload["schema"] = schema
+
+        return self._request("POST", "/source/db/introspect", json=payload)
+
+    def create_db_source(
+        self,
+        source_type: str,
+        credentials: dict[str, Any],
+        schema_name: str,
+        table_name: str,
+        id_field: str,
+        search_field: str,
+        filter_fields: list[str],
+        name: str | None = None,
+    ) -> ApiResult:
+        """Create a DB-backed source.
+
+        Args:
+            source_type: Source type identifier (postgres or clickhouse).
+            credentials: Source DB credentials.
+            schema_name: Schema or database name.
+            table_name: Table name.
+            id_field: Stable row ID field.
+            search_field: Text field used for vectorization.
+            filter_fields: Metadata fields for filtering.
+            name: Optional source name.
+
+        Returns:
+            Source creation response.
+
+        """
+        payload: dict[str, Any] = {
+            "type": source_type,
+            "credentials": credentials,
+            "schema_name": schema_name,
+            "table_name": table_name,
+            "id_field": id_field,
+            "search_field": search_field,
+            "filter_fields": filter_fields,
+        }
+        if name:
+            payload["name"] = name
+
+        return self._request("POST", "/source/db", json=payload)
+
     def list_sources(self) -> ApiResult:
         """Fetch all sources.
 

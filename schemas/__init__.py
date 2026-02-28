@@ -14,13 +14,29 @@ from schemas.provider import (
     ProviderUpdateRequest,
 )
 from schemas.session import SessionRequest, SessionResponse, SessionUpdateRequest
-from schemas.source import SourceResponse
+from schemas.source import (
+    DbColumnSchema,
+    DbCredentialsClickHouse,
+    DbCredentialsPostgres,
+    DbSourceCreateRequest,
+    DbSourceIntrospectRequest,
+    DbSourceIntrospectResponse,
+    DbTableSchema,
+    SourceResponse,
+)
 from schemas.tool import ToolResponse
 
 __all__ = [
     "HealthResponse",
     "ServiceHealthResponse",
     "SourceResponse",
+    "DbCredentialsPostgres",
+    "DbCredentialsClickHouse",
+    "DbSourceIntrospectRequest",
+    "DbSourceIntrospectResponse",
+    "DbSourceCreateRequest",
+    "DbColumnSchema",
+    "DbTableSchema",
     "ChatRequest",
     "ChatResponse",
     "ChatToolRequest",

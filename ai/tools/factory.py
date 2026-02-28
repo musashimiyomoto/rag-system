@@ -23,7 +23,9 @@ TOOL_REGISTRY: dict[ToolId, ToolSpec] = {
     ToolId.RETRIEVE: ToolSpec(
         id=ToolId.RETRIEVE,
         title="Retrieve",
-        description="Search through uploaded sources using vector similarity",
+        description=(
+            "Search uploaded sources with semantic similarity and metadata filters"
+        ),
         enabled_by_default=True,
         requires_sources=True,
         tool=Tool(retrieve),

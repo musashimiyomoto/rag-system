@@ -8,10 +8,14 @@ import pytest_asyncio
 from fastapi import UploadFile
 from sqlalchemy import select
 
-from db.models import SourceFile
+from db.models import SourceDb, SourceFile
 from enums import SourceStatus, SourceType
 from tests.base import BaseTestCase
-from tests.factories import SessionFactory, SessionSourceFactory, SourceFactory
+from tests.factories import (
+    SessionFactory,
+    SessionSourceFactory,
+    SourceFactory,
+)
 
 
 class TestCreateSource(BaseTestCase):
@@ -106,6 +110,103 @@ class TestCreateSource(BaseTestCase):
         assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
 
 
+class TestDbSource(BaseTestCase):
+    introspect_url = "/source/db/introspect"
+    create_url = "/source/db"
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def _mock_prefect_deployment(self) -> AsyncGenerator[mock.MagicMock, None]:
+        async def mock_deploy_process_source_flow(source_id: int) -> None:
+            return None
+
+        with mock.patch(
+            "usecases.source.SourceUsecase.deploy_process_source_flow"
+        ) as mock_deploy:
+            mock_deploy.side_effect = mock_deploy_process_source_flow
+            yield mock_deploy
+
+    @pytest.mark.asyncio
+    async def test_introspect_ok(self) -> None:
+        with mock.patch(
+            "usecases.source.SourceUsecase._introspect_db",
+            return_value=[
+                {
+                    "schema": "public",
+                    "table": "products",
+                    "columns": [
+                        {"name": "id", "type": "integer", "nullable": False},
+                        {"name": "content", "type": "text", "nullable": True},
+                    ],
+                }
+            ],
+        ):
+            response = await self.client.post(
+                url=self.introspect_url,
+                json={
+                    "type": "postgres",
+                    "credentials": {
+                        "host": "localhost",
+                        "port": 5432,
+                        "database": "db",
+                        "user": "user",
+                        "password": "pass",
+                    },
+                    "schema": "public",
+                },
+            )
+
+        data = await self.assert_response_ok(response=response)
+        assert isinstance(data.get("tables"), list)
+        assert data["tables"][0]["schema"] == "public"
+
+    @pytest.mark.asyncio
+    async def test_create_ok(self) -> None:
+        with mock.patch(
+            "usecases.source.SourceUsecase._introspect_db",
+            return_value=[
+                {
+                    "schema": "public",
+                    "table": "products",
+                    "columns": [
+                        {"name": "id", "type": "integer", "nullable": False},
+                        {"name": "content", "type": "text", "nullable": True},
+                        {"name": "category", "type": "text", "nullable": True},
+                    ],
+                }
+            ],
+        ):
+            response = await self.client.post(
+                url=self.create_url,
+                json={
+                    "type": "postgres",
+                    "credentials": {
+                        "host": "localhost",
+                        "port": 5432,
+                        "database": "db",
+                        "user": "user",
+                        "password": "pass",
+                    },
+                    "schema_name": "public",
+                    "table_name": "products",
+                    "id_field": "id",
+                    "search_field": "content",
+                    "filter_fields": ["category"],
+                },
+            )
+
+        data = await self.assert_response_ok(response=response)
+        assert data["id"] is not None
+        assert data["type"] == SourceType.POSTGRES.value
+
+        source_db = (
+            await self.session.execute(
+                select(SourceDb).where(SourceDb.source_id == data["id"])
+            )
+        ).scalar_one_or_none()
+        assert source_db is not None
+        assert source_db.table_name == "products"
+
+
 class TestGetSources(BaseTestCase):
     url = "/source/list"
 
@@ -150,7 +251,8 @@ class TestGetSourceTypes(BaseTestCase):
 
         data = await self.assert_response_ok(response=response)
         assert isinstance(data, list)
-        assert data == [source_type.value for source_type in SourceType]
+        assert SourceType.POSTGRES.value not in data
+        assert SourceType.CLICKHOUSE.value not in data
 
 
 class TestDeleteSource(BaseTestCase):

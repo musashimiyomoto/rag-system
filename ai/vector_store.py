@@ -174,7 +174,7 @@ async def search(
     if not await client.collection_exists(collection_name=collection):
         return []
 
-    return await client.search(
+    return await client.search(  # ty:ignore[unresolved-attribute]
         collection_name=collection,
         query_vector=(await _embed_texts(texts=[query_text]))[0],
         query_filter=query_filter,

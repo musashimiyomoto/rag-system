@@ -37,3 +37,30 @@ class SourceConflictError(BaseError):
         status_code: HTTPStatus = HTTPStatus.CONFLICT,
     ):
         super().__init__(message=message, status_code=status_code)
+
+
+class SourceValidationError(BaseError):
+    def __init__(
+        self,
+        message: str = "Source validation failed",
+        status_code: HTTPStatus = HTTPStatus.BAD_REQUEST,
+    ):
+        super().__init__(message=message, status_code=status_code)
+
+
+class SourceConnectionError(BaseError):
+    def __init__(
+        self,
+        message: str = "Source connection failed",
+        status_code: HTTPStatus = HTTPStatus.BAD_GATEWAY,
+    ):
+        super().__init__(message=message, status_code=status_code)
+
+
+class SourceDbConnectorError(BaseError):
+    def __init__(
+        self,
+        message: str = "Source DB connector error",
+        status_code: HTTPStatus = HTTPStatus.BAD_GATEWAY,
+    ):
+        super().__init__(message=message, status_code=status_code)

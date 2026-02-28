@@ -37,7 +37,8 @@ When implementing changes, preserve this layering:
 
 - Chat endpoint `/chat/stream` accepts `provider_id`, `model_name`, and tool configuration in request body.
 - Providers are managed in DB (`/provider` endpoints), not `.env` keys.
-- Source upload supports `.pdf`, `.txt`, `.md`, `.docx`, `.rtf`, `.odt`, `.epub`, `.html`, `.htm`, `.pptx`, `.xlsx`, and `.eml`.
+- File source upload supports `.pdf`, `.txt`, `.md`, `.docx`, `.rtf`, `.odt`, `.epub`, `.html`, `.htm`, `.pptx`, `.xlsx`, and `.eml`.
+- DB source creation is done via `/source/db/introspect` and `/source/db` for `postgres` and `clickhouse`.
 - Source processing is async and status-driven (`created -> processed -> completed` or `failed`).
 
 ## Editing Rules for Agents
