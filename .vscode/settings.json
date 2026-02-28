@@ -20,12 +20,10 @@
 
   // ===== Ruff =====
   "ruff.lint.enable": true,
-  "ruff.format.enable": true,
   "ruff.organizeImports": true,
 
   // ===== Type checking =====
   "python.analysis.typeCheckingMode": "strict",
-  "ty.enableLanguageServer": true,
 
   // ===== FastAPI dev =====
   "files.exclude": {
