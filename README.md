@@ -71,27 +71,19 @@ make test
 
 Base variables are defined in `.env.example`.
 
-## Tools
+## Chat API Example
 
-Chat supports runtime tool selection through query params.
+`POST /chat/stream`
 
-- `provider_id` and `model_name` are required.
-- `tool_ids` is optional and repeatable.
-- Default behavior (when `tool_ids` is omitted): tools marked
-  `enabled_by_default` are enabled (currently `retrieve` and `web_search`).
-
-Example request:
-
-```bash
-curl -X POST "http://localhost:5000/chat/stream?provider_id=1&model_name=gpt-4.1&tool_ids=retrieve&tool_ids=web_search" \
-  -H "Content-Type: application/json" \
-  -d '{"session_id":1,"message":"What changed in EU AI Act this month?"}'
+```json
+{
+  "session_id": 10,
+  "message": "Summarize session sources",
+  "provider_id": 1,
+  "model_name": "gpt-4o-mini",
+  "tools": [
+    {"id": "retrieve", "source_ids": [1, 2]},
+    {"id": "web_search"}
+  ]
+}
 ```
-
-Available tools can be fetched via:
-
-```bash
-curl "http://localhost:5000/tool/list"
-```
-
-You can also switch model and tool set on every request within the same session.

@@ -4,6 +4,12 @@ from schemas import ToolResponse
 
 class ToolUsecase:
     async def get_tools(self) -> list[ToolResponse]:
+        """Get tools.
+
+        Returns:
+            The list of available tool definitions.
+
+        """
         return [
             ToolResponse(
                 id=tool.id,

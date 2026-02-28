@@ -26,6 +26,13 @@ class SessionUsecase:
     async def _validate_source_ids(
         self, session: AsyncSession, source_ids: list[int]
     ) -> None:
+        """Validate source ids.
+
+        Args:
+            session: The session parameter.
+            source_ids: The source_ids parameter.
+
+        """
         if len(source_ids) != len(set(source_ids)):
             raise SessionValidationError(message="Duplicate source IDs are not allowed")
 
@@ -42,6 +49,16 @@ class SessionUsecase:
     async def _build_response(
         self, session: AsyncSession, session_id: int
     ) -> SessionResponse:
+        """Build response.
+
+        Args:
+            session: The session parameter.
+            session_id: The session_id parameter.
+
+        Returns:
+            The session response with attached source IDs.
+
+        """
         chat_session = await self._session_repository.get_by(
             session=session, id=session_id
         )
@@ -86,6 +103,15 @@ class SessionUsecase:
         return await self._build_response(session=session, session_id=session_obj.id)
 
     async def get_sessions(self, session: AsyncSession) -> list[SessionResponse]:
+        """Get sessions.
+
+        Args:
+            session: The session parameter.
+
+        Returns:
+            The list of sessions ordered by creation time.
+
+        """
         sessions = await self._session_repository.get_all(session=session)
         sorted_sessions = sorted(
             sessions,
@@ -100,6 +126,17 @@ class SessionUsecase:
     async def update_session_sources(
         self, session: AsyncSession, session_id: int, source_ids: list[int]
     ) -> SessionResponse:
+        """Update session sources.
+
+        Args:
+            session: The session parameter.
+            session_id: The session_id parameter.
+            source_ids: The source_ids parameter.
+
+        Returns:
+            The updated session response.
+
+        """
         chat_session = await self._session_repository.get_by(
             session=session, id=session_id
         )

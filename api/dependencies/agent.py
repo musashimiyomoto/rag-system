@@ -1,28 +1,24 @@
 from typing import Annotated
 
-from fastapi import Depends, Query
+from fastapi import Body, Depends
 from pydantic_ai import Agent
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.agent import generate_agent
 from ai.dependencies import AgentDeps
 from api.dependencies import db
-from enums import ToolId
+from schemas import ChatRequest
 
 
 async def get_agent(
+    data: Annotated[ChatRequest, Body(default=...)],
     session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
-    provider_id: Annotated[int, Query(default=..., gt=0)],
-    model_name: Annotated[str, Query(default=..., min_length=1)],
-    tool_ids: Annotated[list[ToolId], Query(default_factory=list)],
 ) -> Agent[AgentDeps, str]:
     """Get agent instance by provider runtime configuration.
 
     Args:
         session: The database session.
-        provider_id: The provider ID.
-        model_name: The model name.
-        tool_ids: Tool ids.
+        data: The chat request data.
 
     Returns:
         The agent instance.
@@ -30,7 +26,7 @@ async def get_agent(
     """
     return await generate_agent(
         session=session,
-        provider_id=provider_id,
-        model_name=model_name,
-        tool_ids=tool_ids,
+        provider_id=data.provider_id,
+        model_name=data.model_name,
+        tool_ids=[tool.id for tool in data.tools],
     )

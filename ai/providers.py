@@ -9,17 +9,28 @@ from schemas import ProviderModelResponse
 def list_provider_models(
     name: ProviderName, api_key: str
 ) -> list[ProviderModelResponse]:
+    """List provider models.
+
+    Args:
+        name: The name parameter.
+        api_key: The api_key parameter.
+
+    Returns:
+        List of provider models.
+
+    """
     if name == ProviderName.OPENAI:
-        return [
-            ProviderModelResponse(name=model.id)
-            for model in openai.Client(api_key=api_key).models.list()
-        ]
+        with openai.Client(api_key=api_key) as client:
+            return [
+                ProviderModelResponse(name=model.id) for model in client.models.list()
+            ]
 
     if name == ProviderName.GOOGLE:
-        return [
-            ProviderModelResponse(name=model.name)
-            for model in google.Client(api_key=api_key).models.list()
-            if model.name is not None
-        ]
+        with google.Client(api_key=api_key) as client:
+            return [
+                ProviderModelResponse(name=model.name)
+                for model in client.models.list()
+                if model.name is not None
+            ]
 
     raise ProviderUpstreamError(message=f"Unsupported provider: {name}")

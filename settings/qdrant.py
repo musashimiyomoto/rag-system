@@ -12,7 +12,6 @@ class QdrantSettings(BaseSettings):
     image: str = Field(default="qdrant/qdrant:v1.13.4", title="Qdrant image")
     host: str = Field(default="qdrant", title="Qdrant host")
     port: int = Field(default=6333, title="Qdrant port")
-    embedding_model: str = Field(default="", title="FastEmbed model name")
     vector_size: int = Field(default=384, title="Embedding vector size")
     distance: str = Field(default="Cosine", title="Distance metric")
     point_id_namespace: UUID = Field(
@@ -22,6 +21,12 @@ class QdrantSettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Url.
+
+        Returns:
+            Qdrant base URL.
+
+        """
         return f"http://{self.host}:{self.port}"
 
 

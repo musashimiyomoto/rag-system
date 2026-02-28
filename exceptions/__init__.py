@@ -13,9 +13,12 @@ from exceptions.session import (
 )
 from exceptions.source import (
     SourceConflictError,
+    SourceConnectionError,
+    SourceDbConnectorError,
     SourceNotFoundError,
     SourceNotSupportedError,
     SourceTooLargeError,
+    SourceValidationError,
 )
 
 __all__ = [
@@ -24,6 +27,9 @@ __all__ = [
     "SourceConflictError",
     "SourceNotSupportedError",
     "SourceTooLargeError",
+    "SourceValidationError",
+    "SourceConnectionError",
+    "SourceDbConnectorError",
     "SessionNotFoundError",
     "SessionValidationError",
     "SessionConflictError",

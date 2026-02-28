@@ -1,5 +1,5 @@
 DOCKER_COMPOSE_FILE := docker-compose.yml
-POETRY := $(shell command -v poetry 2>/dev/null || echo $$HOME/.local/bin/poetry)
+POETRY := poetry
 PYTHON_VERSION := 3.11
 
 GREEN := \033[0;32m

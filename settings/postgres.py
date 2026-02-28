@@ -16,6 +16,12 @@ class PostgresSettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Url.
+
+        Returns:
+            Postgres SQLAlchemy DSN.
+
+        """
         return (
             f"postgresql+asyncpg://"
             f"{self.user}:"
