@@ -1,19 +1,20 @@
 import json
-from typing import Any, Iterator
+from typing import Any, Iterable, Iterator
 
 import httpx
 
 from ui.exceptions import ApiClientError
 from ui.models import ApiResult
-from ui.stream_parser import parse_stream_lines
 
 
 class ApiClient:
     def __init__(self, base_url: str, timeout: float = 30.0):
+        """Initialize API client with base URL and default timeout."""
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
     def _request(self, method: str, path: str, **kwargs: Any) -> ApiResult:
+        """Perform a single HTTP request and map response to `ApiResult`."""
         url = f"{self.base_url}{path}"
         try:
             with httpx.Client(timeout=self.timeout) as client:
@@ -39,13 +40,29 @@ class ApiClient:
             ok=False, status_code=response.status_code, detail=detail, data=payload
         )
 
+    @staticmethod
+    def _parse_stream_lines(lines: Iterable[str]) -> Iterator[dict[str, Any]]:
+        """Parse newline-delimited JSON chunks from /chat/stream."""
+        for line in lines:
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict):
+                yield payload
+
     def liveness(self) -> ApiResult:
+        """Check API liveness endpoint."""
         return self._request("GET", "/health/liveness")
 
     def readiness(self) -> ApiResult:
+        """Check API readiness endpoint."""
         return self._request("GET", "/health/readiness")
 
     def create_source(self, filename: str, file_content: bytes) -> ApiResult:
+        """Upload a new source file."""
         return self._request(
             "POST",
             "/source",
@@ -53,41 +70,52 @@ class ApiClient:
         )
 
     def list_sources(self) -> ApiResult:
+        """Fetch all sources."""
         return self._request("GET", "/source/list")
 
     def get_source(self, source_id: int) -> ApiResult:
+        """Fetch source by ID."""
         return self._request("GET", f"/source/{source_id}")
 
     def delete_source(self, source_id: int) -> ApiResult:
+        """Delete source by ID."""
         return self._request("DELETE", f"/source/{source_id}")
 
     def create_session(self, source_ids: list[int]) -> ApiResult:
+        """Create chat session linked to source IDs."""
         return self._request("POST", "/session", json={"source_ids": source_ids})
 
     def list_sessions(self) -> ApiResult:
+        """Fetch all chat sessions."""
         return self._request("GET", "/session/list")
 
     def update_session(self, session_id: int, source_ids: list[int]) -> ApiResult:
+        """Update source links for an existing session."""
         return self._request(
             "PATCH", f"/session/{session_id}", json={"source_ids": source_ids}
         )
 
     def list_messages(self, session_id: int) -> ApiResult:
+        """Fetch message history for a session."""
         return self._request("GET", f"/session/{session_id}/message/list")
 
     def delete_session(self, session_id: int) -> ApiResult:
+        """Delete a session by ID."""
         return self._request("DELETE", f"/session/{session_id}")
 
     def create_provider(self, name: str, api_key: str) -> ApiResult:
+        """Create provider with credentials."""
         payload = {"name": name, "api_key": api_key}
         return self._request("POST", "/provider", json=payload)
 
     def list_providers(self) -> ApiResult:
+        """Fetch all configured providers."""
         return self._request("GET", "/provider/list")
 
     def update_provider(
         self, provider_id: int, api_key: str | None, is_active: bool | None
     ) -> ApiResult:
+        """Update provider credentials or activation status."""
         payload: dict[str, Any] = {}
         if api_key:
             payload["api_key"] = api_key
@@ -96,12 +124,15 @@ class ApiClient:
         return self._request("PATCH", f"/provider/{provider_id}", json=payload)
 
     def delete_provider(self, provider_id: int) -> ApiResult:
+        """Delete provider by ID."""
         return self._request("DELETE", f"/provider/{provider_id}")
 
     def provider_models(self, provider_id: int) -> ApiResult:
+        """Fetch available models for a provider."""
         return self._request("GET", f"/provider/{provider_id}/models")
 
     def list_tools(self) -> ApiResult:
+        """Fetch all available tool definitions."""
         return self._request("GET", "/tool/list")
 
     def stream_chat(
@@ -112,6 +143,7 @@ class ApiClient:
         model_name: str,
         tool_ids: list[str],
     ) -> Iterator[dict[str, Any]]:
+        """Send chat prompt and yield streamed JSON chunks."""
         url = f"{self.base_url}/chat/stream"
         payload = {"session_id": session_id, "message": message}
         params: dict[str, Any] = {
@@ -142,6 +174,6 @@ class ApiClient:
                             detail = "Unknown error"
                     raise ApiClientError(response.status_code, detail)
 
-                yield from parse_stream_lines(response.iter_lines())
+                yield from self._parse_stream_lines(lines=response.iter_lines())
         except httpx.HTTPError as exc:
             raise ApiClientError(0, str(exc)) from exc
