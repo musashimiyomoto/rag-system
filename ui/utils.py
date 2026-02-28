@@ -37,7 +37,7 @@ def show_table(data: list[dict[str, Any]], title: str | None = None) -> None:
     if not data:
         st.info("No data")
         return
-    st.dataframe(data, use_container_width=True)
+    st.dataframe(data, width="stretch")
 
 
 def format_error_detail(detail: str | None) -> str:

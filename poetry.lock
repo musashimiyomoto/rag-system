@@ -5893,21 +5893,21 @@ files = [
 
 [[package]]
 name = "qdrant-client"
-version = "1.15.1"
+version = "1.17.0"
 description = "Client library for the Qdrant vector search engine"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "qdrant_client-1.15.1-py3-none-any.whl", hash = "sha256:2b975099b378382f6ca1cfb43f0d59e541be6e16a5892f282a4b8de7eff5cb63"},
-    {file = "qdrant_client-1.15.1.tar.gz", hash = "sha256:631f1f3caebfad0fd0c1fba98f41be81d9962b7bf3ca653bed3b727c0e0cbe0e"},
+    {file = "qdrant_client-1.17.0-py3-none-any.whl", hash = "sha256:f5b452c68c42b3580d3d266446fb00d3c6e3aae89c916e16585b3c704e108438"},
+    {file = "qdrant_client-1.17.0.tar.gz", hash = "sha256:47eb033edb9be33a4babb4d87b0d8d5eaf03d52112dca0218db7f2030bf41ba9"},
 ]
 
 [package.dependencies]
 fastembed = {version = ">=0.7,<0.8", optional = true, markers = "extra == \"fastembed\""}
 grpcio = ">=1.41.0"
 httpx = {version = ">=0.20.0", extras = ["http2"]}
-numpy = {version = ">=1.21", markers = "python_version >= \"3.10\" and python_version < \"3.12\""}
+numpy = {version = ">=1.21", markers = "python_version == \"3.11\""}
 portalocker = ">=2.7.0,<4.0"
 protobuf = ">=3.20.0"
 pydantic = ">=1.10.8,<2.0.dev0 || >2.2.0"
@@ -8421,4 +8421,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.11.*"
-content-hash = "f84fb24d6ce8193a8d74aa5ec4a8b0e81682d69e2a05433c451cc270eb9aa60f"
+content-hash = "9e977326f5b89b97fa0301a574a15214ec2a80b1a27c2a2c4e394935eadf1a9a"

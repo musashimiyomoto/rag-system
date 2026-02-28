@@ -13,7 +13,7 @@ gunicorn = { extras = ["gevent"], version = "23.0.0" }
 redis = { extras = ["hiredis"], version = "6.1.0" }
 pydantic-ai-slim = { extras = ["google", "openai", "duckduckgo"], version = "1.60.0" }
 logfire = {extras = ["fastapi", "redis", "sqlalchemy"], version = "4.24.0"}
-qdrant-client = { extras = ["fastembed"], version = "1.15.1" }
+qdrant-client = { extras = ["fastembed"], version = "1.17.0" }
 sentry-sdk = "2.53.0"
 alembic = "1.14.1"
 pydantic = "2.11.7"

@@ -50,9 +50,6 @@ def _get_embedder() -> TextEmbedding:
         The embedder.
 
     """
-    if qdrant_settings.embedding_model:
-        return TextEmbedding(model_name=qdrant_settings.embedding_model)
-
     return TextEmbedding()
 
 
