@@ -13,4 +13,10 @@ class HealthResponse(BaseModel):
 
     @computed_field
     def status(self) -> bool:
+        """Status.
+
+        Returns:
+            True when all services are healthy.
+
+        """
         return all(service.status for service in self.services)

@@ -12,6 +12,15 @@ from settings import core_settings
 
 
 def _parse_source_id(payload: Mapping[str, Any] | None) -> int | None:
+    """Parse source id.
+
+    Args:
+        payload: The payload parameter.
+
+    Returns:
+        Parsed source ID or None when unavailable.
+
+    """
     if not payload:
         return None
 
@@ -30,6 +39,17 @@ def _select_source_ids(
     allowed_source_ids: list[int],
     n_sources: int,
 ) -> list[int]:
+    """Select source ids.
+
+    Args:
+        source_level_results: The source_level_results parameter.
+        allowed_source_ids: The allowed_source_ids parameter.
+        n_sources: The n_sources parameter.
+
+    Returns:
+        Source IDs selected for chunk retrieval.
+
+    """
     selected_source_ids = []
 
     for point in source_level_results:
@@ -54,6 +74,18 @@ async def _collect_ranked_chunks(
     selected_source_ids: list[int],
     n_results: int,
 ) -> list[tuple[float, int, str]]:
+    """Collect ranked chunks.
+
+    Args:
+        session: The session parameter.
+        search_query: The search_query parameter.
+        selected_source_ids: The selected_source_ids parameter.
+        n_results: The n_results parameter.
+
+    Returns:
+        Ranked chunks as (score, source_id, document) tuples.
+
+    """
     source_repository = SourceRepository()
     ranked_chunks = []
 
@@ -81,6 +113,16 @@ def _format_ranked_chunks(
     ranked_chunks: list[tuple[float, int, str]],
     n_results: int,
 ) -> str:
+    """Format ranked chunks.
+
+    Args:
+        ranked_chunks: The ranked_chunks parameter.
+        n_results: The n_results parameter.
+
+    Returns:
+        Formatted deduplicated chunks for the agent response.
+
+    """
     ranked_chunks.sort(key=lambda chunk: chunk[0], reverse=True)
     deduplicated_results = []
     seen_documents = set()
@@ -103,6 +145,9 @@ async def retrieve(context: RunContext[AgentDeps], search_query: str) -> str:
     Args:
         context: The call context.
         search_query: The search query.
+
+    Returns:
+        The retrieved text or an error message.
 
     """
     retrieve_context = context.deps.tool_context.retrieve

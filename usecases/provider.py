@@ -21,6 +21,16 @@ class ProviderUsecase:
         session: AsyncSession,
         data: ProviderCreateRequest,
     ) -> ProviderResponse:
+        """Create provider.
+
+        Args:
+            session: The session parameter.
+            data: The data parameter.
+
+        Returns:
+            The created provider response.
+
+        """
         return ProviderResponse.model_validate(
             await self._provider_repository.create(
                 session=session,
@@ -33,6 +43,15 @@ class ProviderUsecase:
         )
 
     async def get_providers(self, session: AsyncSession) -> list[ProviderResponse]:
+        """Get providers.
+
+        Args:
+            session: The session parameter.
+
+        Returns:
+            The list of configured providers.
+
+        """
         return [
             ProviderResponse.model_validate(provider)
             for provider in await self._provider_repository.get_all(session=session)
@@ -41,6 +60,17 @@ class ProviderUsecase:
     async def update_provider(
         self, session: AsyncSession, provider_id: int, data: ProviderUpdateRequest
     ) -> ProviderResponse:
+        """Update provider.
+
+        Args:
+            session: The session parameter.
+            provider_id: The provider_id parameter.
+            data: The data parameter.
+
+        Returns:
+            The updated provider response.
+
+        """
         updated_data = data.model_dump(exclude_none=True)
         if not updated_data:
             raise ProviderConflictError(message="No data provided for update")
@@ -58,6 +88,13 @@ class ProviderUsecase:
         )
 
     async def delete_provider(self, session: AsyncSession, provider_id: int) -> None:
+        """Delete provider.
+
+        Args:
+            session: The session parameter.
+            provider_id: The provider_id parameter.
+
+        """
         deleted = await self._provider_repository.delete_by(
             session=session, id=provider_id
         )
@@ -67,6 +104,16 @@ class ProviderUsecase:
     async def get_provider_models(
         self, session: AsyncSession, provider_id: int
     ) -> list[ProviderModelResponse]:
+        """Get provider models.
+
+        Args:
+            session: The session parameter.
+            provider_id: The provider_id parameter.
+
+        Returns:
+            The list of available models for the provider.
+
+        """
         provider = await self._provider_repository.get_by(
             session=session, id=provider_id
         )

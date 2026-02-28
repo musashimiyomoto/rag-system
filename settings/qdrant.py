@@ -22,6 +22,12 @@ class QdrantSettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Url.
+
+        Returns:
+            Qdrant base URL.
+
+        """
         return f"http://{self.host}:{self.port}"
 
 

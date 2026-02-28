@@ -9,6 +9,16 @@ from schemas import ProviderModelResponse
 def list_provider_models(
     name: ProviderName, api_key: str
 ) -> list[ProviderModelResponse]:
+    """List provider models.
+
+    Args:
+        name: The name parameter.
+        api_key: The api_key parameter.
+
+    Returns:
+        List of provider models.
+
+    """
     if name == ProviderName.OPENAI:
         with openai.Client(api_key=api_key) as client:
             return [

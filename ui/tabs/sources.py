@@ -4,29 +4,25 @@ from ui.api import ApiClient
 from ui.models import ApiResult
 from ui.utils import show_result, show_table, source_label
 
-SUPPORTED_SOURCE_TYPES = [
-    "pdf",
-    "txt",
-    "md",
-    "docx",
-    "rtf",
-    "odt",
-    "epub",
-    "html",
-    "htm",
-    "pptx",
-    "xlsx",
-    "eml",
-]
-
 UPLOAD_DISABLED_MESSAGE = (
     "Upload disabled: configure and activate at least one provider for source "
     "summarization. Go to Providers tab, create provider, set active."
 )
+SOURCE_TYPES_UNAVAILABLE_MESSAGE = (
+    "Upload disabled: could not load supported source types from backend."
+)
 
 
 def get_provider_upload_state(providers_result: ApiResult) -> tuple[int, bool]:
-    """Return active provider count and whether source upload is allowed."""
+    """Compute source upload availability from providers response.
+
+    Args:
+        providers_result: Provider list API response.
+
+    Returns:
+        Active provider count and upload-enabled flag.
+
+    """
     if not (providers_result.ok and isinstance(providers_result.data, list)):
         return 0, False
 
@@ -41,7 +37,17 @@ def get_provider_upload_state(providers_result: ApiResult) -> tuple[int, bool]:
 def detach_source_from_current_session(
     client: ApiClient, session_id: int, source_id: int
 ) -> bool:
-    """Detach source from the selected session before source deletion."""
+    """Detach a source from the selected session before deletion.
+
+    Args:
+        client: UI API client.
+        session_id: Active session ID.
+        source_id: Source ID to remove from the session.
+
+    Returns:
+        True when detaching is not required or completed successfully.
+
+    """
     sessions_result = client.list_sessions()
     if not (sessions_result.ok and isinstance(sessions_result.data, list)):
         show_result(sessions_result)
@@ -73,8 +79,58 @@ def detach_source_from_current_session(
     return True
 
 
+def get_supported_source_types(client: ApiClient) -> list[str]:
+    """Get supported source types from backend.
+
+    Args:
+        client: UI API client.
+
+    Returns:
+        Supported source types list or an empty list on failure.
+
+    """
+    source_types_result = client.list_source_types()
+    if source_types_result.ok and isinstance(source_types_result.data, list):
+        return [str(source_type) for source_type in source_types_result.data]
+
+    if not source_types_result.ok:
+        show_result(source_types_result)
+
+    return []
+
+
+def render_upload_form(
+    client: ApiClient, source_types: list[str], upload_enabled: bool
+) -> None:
+    """Render source upload form.
+
+    Args:
+        client: UI API client.
+        source_types: Supported source types.
+        upload_enabled: Upload enabled flag.
+
+    """
+    with st.form("upload_source"):
+        file = st.file_uploader("Upload source", type=source_types)
+        submitted = st.form_submit_button("Upload", disabled=not upload_enabled)
+        if submitted:
+            if not file:
+                st.warning("Choose file")
+            else:
+                upload_result = client.create_source(
+                    filename=file.name,
+                    file_content=file.getvalue(),
+                )
+                show_result(upload_result, "Source uploaded")
+
+
 def render_sources_tab(client: ApiClient) -> None:
-    """Render source upload/list/delete tab."""
+    """Render the Sources tab.
+
+    Args:
+        client: UI API client.
+
+    """
     st.subheader("Sources")
 
     providers_result = client.list_providers()
@@ -86,18 +142,14 @@ def render_sources_tab(client: ApiClient) -> None:
     if not upload_enabled:
         st.warning(UPLOAD_DISABLED_MESSAGE)
 
-    with st.form("upload_source"):
-        file = st.file_uploader("Upload source", type=SUPPORTED_SOURCE_TYPES)
-        submitted = st.form_submit_button("Upload", disabled=not upload_enabled)
-        if submitted:
-            if not file:
-                st.warning("Choose file")
-            else:
-                upload_result = client.create_source(
-                    filename=file.name,
-                    file_content=file.getvalue(),
-                )
-                show_result(upload_result, "Source uploaded")
+    source_types = get_supported_source_types(client=client)
+    if len(source_types) == 0:
+        st.warning(SOURCE_TYPES_UNAVAILABLE_MESSAGE)
+        upload_enabled = False
+
+    render_upload_form(
+        client=client, source_types=source_types, upload_enabled=upload_enabled
+    )
 
     sources_result = client.list_sources()
     if not (sources_result.ok and isinstance(sources_result.data, list)):

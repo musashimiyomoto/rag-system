@@ -16,6 +16,12 @@ class PrefectSettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Url.
+
+        Returns:
+            Prefect server base URL.
+
+        """
         return f"http://{self.host}:{self.port}"
 
 

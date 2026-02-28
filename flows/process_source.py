@@ -19,20 +19,56 @@ from utils import decrypt
 
 
 def _decode_text_content(content: bytes) -> str:
+    """Decode text content.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Decoded text content.
+
+    """
     return content.decode(encoding=UTF8, errors="ignore")
 
 
 def _normalize_extracted_text(text: str) -> str:
+    """Normalize extracted text.
+
+    Args:
+        text: The text parameter.
+
+    Returns:
+        Normalized text without empty lines.
+
+    """
     return "\n".join(line.strip() for line in text.splitlines() if line.strip())
 
 
 def _extract_html_text(raw_text: str) -> str:
+    """Extract html text.
+
+    Args:
+        raw_text: The raw_text parameter.
+
+    Returns:
+        Plain text extracted from HTML.
+
+    """
     beautiful_soup = importlib.import_module("bs4").BeautifulSoup
 
     return beautiful_soup(raw_text, features="html.parser").get_text(separator="\n")
 
 
 def _extract_docx_text(content: bytes) -> str:
+    """Extract docx text.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Plain text extracted from DOCX bytes.
+
+    """
     document_class = importlib.import_module("docx").Document
 
     document = document_class(BytesIO(initial_bytes=content))
@@ -40,12 +76,30 @@ def _extract_docx_text(content: bytes) -> str:
 
 
 def _extract_rtf_text(content: bytes) -> str:
+    """Extract rtf text.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Plain text extracted from RTF bytes.
+
+    """
     rtf_to_text = importlib.import_module("striprtf.striprtf").rtf_to_text
 
     return rtf_to_text(_decode_text_content(content=content))
 
 
 def _extract_odt_text(content: bytes) -> str:
+    """Extract odt text.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Plain text extracted from ODT bytes.
+
+    """
     teletype = importlib.import_module("odf.teletype")
     load = importlib.import_module("odf.opendocument").load
     paragraph_type = importlib.import_module("odf.text").P
@@ -58,6 +112,15 @@ def _extract_odt_text(content: bytes) -> str:
 
 
 def _extract_epub_text(content: bytes) -> str:
+    """Extract epub text.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Plain text extracted from EPUB bytes.
+
+    """
     beautiful_soup = importlib.import_module("bs4").BeautifulSoup
     ebooklib = importlib.import_module("ebooklib")
     epub = importlib.import_module("ebooklib.epub")
@@ -73,6 +136,15 @@ def _extract_epub_text(content: bytes) -> str:
 
 
 def _extract_pptx_text(content: bytes) -> str:
+    """Extract pptx text.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Plain text extracted from PPTX bytes.
+
+    """
     presentation_class = importlib.import_module("pptx").Presentation
 
     presentation = presentation_class(BytesIO(initial_bytes=content))
@@ -86,6 +158,15 @@ def _extract_pptx_text(content: bytes) -> str:
 
 
 def _extract_xlsx_text(content: bytes) -> str:
+    """Extract xlsx text.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Plain text extracted from XLSX bytes.
+
+    """
     load_workbook = importlib.import_module("openpyxl").load_workbook
 
     workbook = load_workbook(
@@ -102,6 +183,15 @@ def _extract_xlsx_text(content: bytes) -> str:
 
 
 def _extract_eml_text(content: bytes) -> str:
+    """Extract eml text.
+
+    Args:
+        content: The content parameter.
+
+    Returns:
+        Plain text extracted from EML bytes.
+
+    """
     msg = message_from_bytes(content)
     chunks = []
 

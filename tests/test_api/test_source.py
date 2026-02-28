@@ -141,6 +141,18 @@ class TestGetSource(BaseTestCase):
         assert data["collection"] == source.collection
 
 
+class TestGetSourceTypes(BaseTestCase):
+    url = "/source/type/list"
+
+    @pytest.mark.asyncio
+    async def test_ok(self) -> None:
+        response = await self.client.get(url=self.url)
+
+        data = await self.assert_response_ok(response=response)
+        assert isinstance(data, list)
+        assert data == [source_type.value for source_type in SourceType]
+
+
 class TestDeleteSource(BaseTestCase):
     url = "/source/{id}"
 

@@ -48,6 +48,15 @@ async def generate_agent(
 
     @agent.instructions
     async def generate_instructions(context: RunContext[AgentDeps]) -> str:
+        """Generate instructions.
+
+        Args:
+            context: The context parameter.
+
+        Returns:
+            The rendered system prompt with source summaries.
+
+        """
         source_summaries = []
         for source_id in context.deps.source_ids:
             source = await SourceRepository().get_by(

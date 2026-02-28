@@ -12,6 +12,14 @@ class SessionSourceRepository(BaseRepository[SessionSource]):
     async def delete_many(
         self, session: AsyncSession, session_id: int, source_ids: list[int]
     ) -> None:
+        """Delete many.
+
+        Args:
+            session: The session parameter.
+            session_id: The session_id parameter.
+            source_ids: The source_ids parameter.
+
+        """
         if not source_ids:
             return
 

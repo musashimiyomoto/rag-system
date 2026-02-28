@@ -47,12 +47,27 @@ TOOL_REGISTRY: dict[ToolId, ToolSpec] = {
 
 
 def get_default_tool_ids() -> list[ToolId]:
+    """Get default tool ids.
+
+    Returns:
+        The list of tool IDs enabled by default.
+
+    """
     return [
         tool_id for tool_id, spec in TOOL_REGISTRY.items() if spec.enabled_by_default
     ]
 
 
 def get_tools(tool_ids: list[ToolId]) -> list[Tool[Any] | Callable[..., Any]]:
+    """Get tools.
+
+    Args:
+        tool_ids: The tool_ids parameter.
+
+    Returns:
+        The list of callable tools for agent runtime.
+
+    """
     selected_ids = tool_ids or get_default_tool_ids()
     tools: list[Tool[Any] | Callable[..., Any]] = []
 

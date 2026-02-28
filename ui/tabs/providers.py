@@ -5,7 +5,12 @@ from ui.utils import show_result, show_table
 
 
 def render_providers_tab(client: ApiClient) -> None:
-    """Render provider creation and management tab."""
+    """Render the Providers tab.
+
+    Args:
+        client: UI API client.
+
+    """
     st.subheader("Providers")
     with st.form("create_provider"):
         provider_name = st.selectbox("Provider", options=["openai", "google"])

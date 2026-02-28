@@ -12,10 +12,27 @@ from settings import qdrant_settings
 
 
 def _normalize_point_id(point_id: str) -> str:
-    return str(uuid5(namespace=qdrant_settings.point_id_namespace, name=point_id))
+    """Normalize point id.
+
+    Args:
+        point_id: The point_id parameter.
+
+    Returns:
+        Normalized point id.
+
+    """
+    return str(
+        object=uuid5(namespace=qdrant_settings.point_id_namespace, name=point_id)
+    )
 
 
 def _resolve_distance() -> models.Distance:
+    """Resolve distance.
+
+    Returns:
+        Distance.
+
+    """
     distance_map = {
         "COSINE": models.Distance.COSINE,
         "DOT": models.Distance.DOT,
@@ -27,6 +44,12 @@ def _resolve_distance() -> models.Distance:
 
 @lru_cache(maxsize=1)
 def _get_embedder() -> TextEmbedding:
+    """Get embedder.
+
+    Returns:
+        The embedder.
+
+    """
     if qdrant_settings.embedding_model:
         return TextEmbedding(model_name=qdrant_settings.embedding_model)
 
@@ -35,18 +58,48 @@ def _get_embedder() -> TextEmbedding:
 
 @lru_cache(maxsize=1)
 def _get_client() -> AsyncQdrantClient:
+    """Get client.
+
+    Returns:
+        Configured async Qdrant client.
+
+    """
     return AsyncQdrantClient(host=qdrant_settings.host, port=qdrant_settings.port)
 
 
 def _embed_sync(texts: Sequence[str]) -> list[list[float]]:
+    """Embed sync.
+
+    Args:
+        texts: The texts parameter.
+
+    Returns:
+        Vector embeddings.
+
+    """
     return [vector.tolist() for vector in _get_embedder().embed(documents=list(texts))]
 
 
 async def _embed_texts(texts: Sequence[str]) -> list[list[float]]:
+    """Embed texts.
+
+    Args:
+        texts: The texts parameter.
+
+    Returns:
+        Vector embeddings.
+
+    """
     return await asyncio.to_thread(_embed_sync, texts)
 
 
 async def ensure_collection(name: str) -> None:
+    """Ensure collection.
+
+    Args:
+        name: The name parameter.
+
+    """
     client = _get_client()
     if await client.collection_exists(collection_name=name):
         return
@@ -66,6 +119,15 @@ async def upsert_chunks(
     texts: Sequence[str],
     payloads: Sequence[Mapping[str, Any] | None],
 ) -> None:
+    """Upsert chunks.
+
+    Args:
+        collection: The collection parameter.
+        ids: The ids parameter.
+        texts: The texts parameter.
+        payloads: The payloads parameter.
+
+    """
     if len(ids) != len(texts) or len(ids) != len(payloads):
         msg = "ids, texts and payloads must have the same length"
         raise ValueError(msg)
@@ -96,6 +158,18 @@ async def search(
     limit: int,
     query_filter: models.Filter | None = None,
 ) -> list[models.ScoredPoint]:
+    """Search.
+
+    Args:
+        collection: The collection parameter.
+        query_text: The query_text parameter.
+        limit: The limit parameter.
+        query_filter: The query_filter parameter.
+
+    Returns:
+        Scored points matching the query.
+
+    """
     if limit <= 0:
         return []
 
@@ -113,6 +187,12 @@ async def search(
 
 
 async def delete_collection(name: str) -> None:
+    """Delete collection.
+
+    Args:
+        name: The name parameter.
+
+    """
     client = _get_client()
     if not await client.collection_exists(collection_name=name):
         return
@@ -121,6 +201,13 @@ async def delete_collection(name: str) -> None:
 
 
 async def delete_points(collection: str, ids: Sequence[str]) -> None:
+    """Delete points.
+
+    Args:
+        collection: The collection parameter.
+        ids: The ids parameter.
+
+    """
     if len(ids) == 0:
         return
 
@@ -138,6 +225,15 @@ async def delete_points(collection: str, ids: Sequence[str]) -> None:
 
 
 def relevance_score(score: float) -> float:
+    """Relevance score.
+
+    Args:
+        score: The score parameter.
+
+    Returns:
+        Relevance score.
+
+    """
     if _resolve_distance() in {models.Distance.EUCLID, models.Distance.MANHATTAN}:
         return -float(score)
 

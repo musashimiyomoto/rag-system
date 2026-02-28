@@ -9,12 +9,28 @@ from ui.models import ApiResult
 
 class ApiClient:
     def __init__(self, base_url: str, timeout: float = 30.0):
-        """Initialize API client with base URL and default timeout."""
+        """Initialize the API client.
+
+        Args:
+            base_url: Base URL of the backend API.
+            timeout: Default timeout in seconds for non-stream requests.
+
+        """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
     def _request(self, method: str, path: str, **kwargs: Any) -> ApiResult:
-        """Perform a single HTTP request and map response to `ApiResult`."""
+        """Send an HTTP request and map the response to `ApiResult`.
+
+        Args:
+            method: HTTP method.
+            path: API path relative to the configured base URL.
+            **kwargs: Extra arguments forwarded to `httpx.Client.request`.
+
+        Returns:
+            API result wrapper with parsed payload or error detail.
+
+        """
         url = f"{self.base_url}{path}"
         try:
             with httpx.Client(timeout=self.timeout) as client:
@@ -42,7 +58,15 @@ class ApiClient:
 
     @staticmethod
     def _parse_stream_lines(lines: Iterable[str]) -> Iterator[dict[str, Any]]:
-        """Parse newline-delimited JSON chunks from /chat/stream."""
+        """Parse streamed NDJSON lines.
+
+        Args:
+            lines: Text lines yielded from the streaming HTTP response.
+
+        Yields:
+            Parsed JSON objects for valid dictionary payloads.
+
+        """
         for line in lines:
             if not line:
                 continue
@@ -54,15 +78,34 @@ class ApiClient:
                 yield payload
 
     def liveness(self) -> ApiResult:
-        """Check API liveness endpoint."""
+        """Check API liveness.
+
+        Returns:
+            Liveness endpoint response.
+
+        """
         return self._request("GET", "/health/liveness")
 
     def readiness(self) -> ApiResult:
-        """Check API readiness endpoint."""
+        """Check API readiness.
+
+        Returns:
+            Readiness endpoint response.
+
+        """
         return self._request("GET", "/health/readiness")
 
     def create_source(self, filename: str, file_content: bytes) -> ApiResult:
-        """Upload a new source file."""
+        """Upload a source file.
+
+        Args:
+            filename: Source filename.
+            file_content: Raw file bytes.
+
+        Returns:
+            Source creation response.
+
+        """
         return self._request(
             "POST",
             "/source",
@@ -70,52 +113,144 @@ class ApiClient:
         )
 
     def list_sources(self) -> ApiResult:
-        """Fetch all sources."""
+        """Fetch all sources.
+
+        Returns:
+            Source list response.
+
+        """
         return self._request("GET", "/source/list")
 
+    def list_source_types(self) -> ApiResult:
+        """Fetch supported source types.
+
+        Returns:
+            Supported source type list response.
+
+        """
+        return self._request("GET", "/source/type/list")
+
     def get_source(self, source_id: int) -> ApiResult:
-        """Fetch source by ID."""
+        """Fetch a source by ID.
+
+        Args:
+            source_id: Source ID.
+
+        Returns:
+            Source response.
+
+        """
         return self._request("GET", f"/source/{source_id}")
 
     def delete_source(self, source_id: int) -> ApiResult:
-        """Delete source by ID."""
+        """Delete a source by ID.
+
+        Args:
+            source_id: Source ID.
+
+        Returns:
+            Source deletion response.
+
+        """
         return self._request("DELETE", f"/source/{source_id}")
 
     def create_session(self, source_ids: list[int]) -> ApiResult:
-        """Create chat session linked to source IDs."""
+        """Create a chat session.
+
+        Args:
+            source_ids: Source IDs linked to the session.
+
+        Returns:
+            Session creation response.
+
+        """
         return self._request("POST", "/session", json={"source_ids": source_ids})
 
     def list_sessions(self) -> ApiResult:
-        """Fetch all chat sessions."""
+        """Fetch all chat sessions.
+
+        Returns:
+            Session list response.
+
+        """
         return self._request("GET", "/session/list")
 
     def update_session(self, session_id: int, source_ids: list[int]) -> ApiResult:
-        """Update source links for an existing session."""
+        """Update source links for a session.
+
+        Args:
+            session_id: Session ID.
+            source_ids: New source IDs for the session.
+
+        Returns:
+            Session update response.
+
+        """
         return self._request(
             "PATCH", f"/session/{session_id}", json={"source_ids": source_ids}
         )
 
     def list_messages(self, session_id: int) -> ApiResult:
-        """Fetch message history for a session."""
+        """Fetch message history for a session.
+
+        Args:
+            session_id: Session ID.
+
+        Returns:
+            Message list response.
+
+        """
         return self._request("GET", f"/session/{session_id}/message/list")
 
     def delete_session(self, session_id: int) -> ApiResult:
-        """Delete a session by ID."""
+        """Delete a session by ID.
+
+        Args:
+            session_id: Session ID.
+
+        Returns:
+            Session deletion response.
+
+        """
         return self._request("DELETE", f"/session/{session_id}")
 
     def create_provider(self, name: str, api_key: str) -> ApiResult:
-        """Create provider with credentials."""
+        """Create a provider.
+
+        Args:
+            name: Provider name.
+            api_key: Provider API key.
+
+        Returns:
+            Provider creation response.
+
+        """
         payload = {"name": name, "api_key": api_key}
         return self._request("POST", "/provider", json=payload)
 
     def list_providers(self) -> ApiResult:
-        """Fetch all configured providers."""
+        """Fetch all configured providers.
+
+        Returns:
+            Provider list response.
+
+        """
         return self._request("GET", "/provider/list")
 
     def update_provider(
         self, provider_id: int, api_key: str | None, is_active: bool | None
     ) -> ApiResult:
-        """Update provider credentials or activation status."""
+        """Update provider credentials or status.
+
+        Args:
+            provider_id: Provider ID.
+            api_key: New API key, if provided.
+            is_active: New activation status, if provided.
+
+        Returns:
+            Provider update response.
+
+        """
         payload: dict[str, Any] = {}
         if api_key:
             payload["api_key"] = api_key
@@ -124,15 +259,36 @@ class ApiClient:
         return self._request("PATCH", f"/provider/{provider_id}", json=payload)
 
     def delete_provider(self, provider_id: int) -> ApiResult:
-        """Delete provider by ID."""
+        """Delete a provider by ID.
+
+        Args:
+            provider_id: Provider ID.
+
+        Returns:
+            Provider deletion response.
+
+        """
         return self._request("DELETE", f"/provider/{provider_id}")
 
     def provider_models(self, provider_id: int) -> ApiResult:
-        """Fetch available models for a provider."""
+        """Fetch available models for a provider.
+
+        Args:
+            provider_id: Provider ID.
+
+        Returns:
+            Provider model list response.
+
+        """
         return self._request("GET", f"/provider/{provider_id}/models")
 
     def list_tools(self) -> ApiResult:
-        """Fetch all available tool definitions."""
+        """Fetch tool definitions.
+
+        Returns:
+            Tool list response.
+
+        """
         return self._request("GET", "/tool/list")
 
     def stream_chat(
@@ -143,7 +299,22 @@ class ApiClient:
         model_name: str,
         tool_ids: list[str],
     ) -> Iterator[dict[str, Any]]:
-        """Send chat prompt and yield streamed JSON chunks."""
+        """Send a chat prompt and stream response chunks.
+
+        Args:
+            session_id: Session ID.
+            message: User prompt text.
+            provider_id: Provider ID.
+            model_name: Model name.
+            tool_ids: Tool IDs enabled for this request.
+
+        Yields:
+            Streamed chat chunks as dictionaries.
+
+        Raises:
+            ApiClientError: If request or stream handling fails.
+
+        """
         url = f"{self.base_url}/chat/stream"
         payload = {"session_id": session_id, "message": message}
         params: dict[str, Any] = {

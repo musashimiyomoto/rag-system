@@ -116,6 +116,15 @@ class SourceUsecase:
             for source in await self._source_repository.get_all(session=session)
         ]
 
+    def get_supported_source_types(self) -> list[str]:
+        """Get supported source types.
+
+        Returns:
+            The list of supported source extensions.
+
+        """
+        return [source_type.value for source_type in SourceType]
+
     async def get_source(self, session: AsyncSession, source_id: int) -> SourceResponse:
         """Get a source by ID.
 

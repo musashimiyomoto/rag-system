@@ -38,6 +38,15 @@ async def get_sources(
     return await usecase.get_sources(session=session)
 
 
+@router.get(path="/type/list")
+async def get_source_types(
+    usecase: Annotated[
+        source.SourceUsecase, Depends(dependency=source.get_source_usecase)
+    ],
+) -> list[str]:
+    return usecase.get_supported_source_types()
+
+
 @router.get(path="/{source_id}")
 async def get_source(
     source_id: Annotated[int, Path(default=...)],

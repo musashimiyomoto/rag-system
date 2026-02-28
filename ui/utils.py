@@ -6,7 +6,13 @@ from ui.models import ApiResult
 
 
 def show_result(result: ApiResult, success_message: str | None = None) -> None:
-    """Render an API call result as success payload or formatted error."""
+    """Render API result as success output or formatted error.
+
+    Args:
+        result: API call result wrapper.
+        success_message: Optional success message shown when call succeeds.
+
+    """
     if result.ok:
         if success_message:
             st.success(success_message)
@@ -19,7 +25,13 @@ def show_result(result: ApiResult, success_message: str | None = None) -> None:
 
 
 def show_table(data: list[dict[str, Any]], title: str | None = None) -> None:
-    """Render a table with optional title and empty-state message."""
+    """Render a data table.
+
+    Args:
+        data: Table rows as dictionaries.
+        title: Optional section title.
+
+    """
     if title:
         st.subheader(title)
     if not data:
@@ -29,7 +41,15 @@ def show_table(data: list[dict[str, Any]], title: str | None = None) -> None:
 
 
 def format_error_detail(detail: str | None) -> str:
-    """Normalize API error detail text for user-facing output."""
+    """Normalize error detail text for UI display.
+
+    Args:
+        detail: Raw error detail from API response.
+
+    Returns:
+        User-facing error detail text.
+
+    """
     if not detail:
         return "Unknown error"
 
@@ -46,7 +66,15 @@ def format_error_detail(detail: str | None) -> str:
 
 
 def source_label(source: dict[str, Any]) -> str:
-    """Build a display label for a source record."""
+    """Build a display label for a source.
+
+    Args:
+        source: Source record payload.
+
+    Returns:
+        Source label text.
+
+    """
     source_id = source["id"]
     source_name = source.get("name", "unknown")
     source_status = source.get("status", "unknown")
@@ -54,7 +82,15 @@ def source_label(source: dict[str, Any]) -> str:
 
 
 def provider_label(provider: dict[str, Any]) -> str:
-    """Build a display label for a provider record."""
+    """Build a display label for a provider.
+
+    Args:
+        provider: Provider record payload.
+
+    Returns:
+        Provider label text.
+
+    """
     provider_id = provider["id"]
     provider_name = provider.get("name", "unknown")
     status = "active" if provider.get("is_active") else "inactive"
@@ -62,7 +98,15 @@ def provider_label(provider: dict[str, Any]) -> str:
 
 
 def tool_label(tool: dict[str, Any]) -> str:
-    """Build a display label for a tool record."""
+    """Build a display label for a tool.
+
+    Args:
+        tool: Tool record payload.
+
+    Returns:
+        Tool label text.
+
+    """
     tool_id = str(tool.get("id", "unknown"))
     tool_title = str(tool.get("title", tool_id))
     return f"{tool_title} ({tool_id})"
@@ -71,7 +115,16 @@ def tool_label(tool: dict[str, Any]) -> str:
 def session_label(
     session_item: int | None, sessions_map: dict[int, dict[str, Any]]
 ) -> str:
-    """Build a display label for a session selector option."""
+    """Build a display label for a session selector option.
+
+    Args:
+        session_item: Session ID or None option.
+        sessions_map: Sessions keyed by ID.
+
+    Returns:
+        Session label text.
+
+    """
     if session_item is None:
         return "No active session"
     source_ids = sessions_map.get(session_item, {}).get("source_ids", [])
@@ -79,7 +132,16 @@ def session_label(
 
 
 def merge_stream_chunk(current_text: str, chunk_text: str) -> str:
-    """Merge streaming text chunk into already rendered content."""
+    """Merge a streamed chunk into current assistant text.
+
+    Args:
+        current_text: Already rendered assistant text.
+        chunk_text: Newly received chunk text.
+
+    Returns:
+        Updated assistant text.
+
+    """
     if not chunk_text:
         return current_text
     if chunk_text == current_text:
@@ -92,7 +154,15 @@ def merge_stream_chunk(current_text: str, chunk_text: str) -> str:
 
 
 def format_message_metadata(message: dict[str, Any]) -> str:
-    """Format model/tool metadata shown under chat messages."""
+    """Format message metadata shown under chat messages.
+
+    Args:
+        message: Chat message payload.
+
+    Returns:
+        Formatted metadata string or empty string.
+
+    """
     model_name = str(message.get("model_name") or "")
     tool_ids = message.get("tool_ids") or []
     if not model_name and not tool_ids:
@@ -103,7 +173,7 @@ def format_message_metadata(message: dict[str, Any]) -> str:
 
 
 def init_state() -> None:
-    """Initialize Streamlit state keys required by UI tabs."""
+    """Initialize default Streamlit state used by UI tabs."""
     defaults: dict[str, object] = {
         "selected_session_id": None,
         "selected_provider_id": None,
@@ -118,6 +188,14 @@ def init_state() -> None:
 
 
 def get_chat_history(session_id: int) -> list[dict[str, Any]]:
-    """Return mutable chat history list for a given session."""
+    """Get mutable chat history for a session.
+
+    Args:
+        session_id: Session ID.
+
+    Returns:
+        Mutable list of chat message dictionaries.
+
+    """
     history = st.session_state["chat_history"]
     return history.setdefault(str(session_id), [])

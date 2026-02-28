@@ -10,7 +10,17 @@ from exceptions import ProviderValidationError
 def get_model(
     provider_name: ProviderName, model_name: str, api_key: str
 ) -> tuple[Model, ModelSettings]:
-    """Build model client by runtime provider configuration."""
+    """Build model client by runtime provider configuration.
+
+    Args:
+        provider_name: The provider name.
+        model_name: The model name.
+        api_key: The API key.
+
+    Returns:
+        The model and settings.
+
+    """
     if provider_name == ProviderName.GOOGLE:
         return (
             google.GoogleModel(

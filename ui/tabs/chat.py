@@ -17,7 +17,13 @@ from ui.utils import (
 
 
 def load_session_messages(client: ApiClient, session_id: int) -> None:
-    """Load session message history into Streamlit state."""
+    """Load session messages into Streamlit state.
+
+    Args:
+        client: UI API client.
+        session_id: Session ID.
+
+    """
     messages = client.list_messages(session_id=session_id)
     if messages.ok and isinstance(messages.data, list):
         st.session_state["chat_history"][str(session_id)] = [
@@ -35,7 +41,15 @@ def load_session_messages(client: ApiClient, session_id: int) -> None:
 def get_provider_context(
     client: ApiClient,
 ) -> tuple[int, str] | None:
-    """Resolve selected provider and model for chat."""
+    """Resolve provider and model selection for chat.
+
+    Args:
+        client: UI API client.
+
+    Returns:
+        Selected provider ID and model name, or None when unavailable.
+
+    """
     providers_result = client.list_providers()
     if not (providers_result.ok and isinstance(providers_result.data, list)):
         show_result(providers_result)
@@ -98,7 +112,15 @@ def get_provider_context(
 def get_tool_context(
     client: ApiClient,
 ) -> tuple[list[str], dict[str, dict[str, Any]], list[str]] | None:
-    """Fetch available tools and defaults for chat requests."""
+    """Resolve available tools and default tool selection.
+
+    Args:
+        client: UI API client.
+
+    Returns:
+        Tool IDs, tool metadata map, and default selected tool IDs.
+
+    """
     tools_result = client.list_tools()
     if not (tools_result.ok and isinstance(tools_result.data, list)):
         show_result(tools_result)
@@ -118,7 +140,15 @@ def get_tool_context(
 def get_completed_sources(
     client: ApiClient,
 ) -> tuple[list[int], dict[int, dict[str, Any]]] | None:
-    """Fetch completed sources that can be attached to chat sessions."""
+    """Load completed sources available for chat sessions.
+
+    Args:
+        client: UI API client.
+
+    Returns:
+        Completed source IDs and a map by source ID, or None on failure.
+
+    """
     sources_result = client.list_sources()
     if not (sources_result.ok and isinstance(sources_result.data, list)):
         show_result(sources_result)
@@ -137,7 +167,15 @@ def get_completed_sources(
 
 
 def get_sessions_context(client: ApiClient) -> dict[int, dict[str, Any]] | None:
-    """Fetch all chat sessions mapped by ID."""
+    """Load sessions mapped by session ID.
+
+    Args:
+        client: UI API client.
+
+    Returns:
+        Session map keyed by ID, or None on failure.
+
+    """
     sessions_result = client.list_sessions()
     if not (sessions_result.ok and isinstance(sessions_result.data, list)):
         show_result(sessions_result)
@@ -151,7 +189,13 @@ def get_sessions_context(client: ApiClient) -> dict[int, dict[str, Any]] | None:
 
 
 def select_session(client: ApiClient, sessions_map: dict[int, dict[str, Any]]) -> None:
-    """Render session selector and sync selected session into state."""
+    """Render session selector and synchronize session state.
+
+    Args:
+        client: UI API client.
+        sessions_map: Sessions keyed by ID.
+
+    """
     session_options: list[int | None] = [None] + sorted(
         sessions_map.keys(), reverse=True
     )
@@ -182,7 +226,12 @@ def select_session(client: ApiClient, sessions_map: dict[int, dict[str, Any]]) -
 
 
 def handle_new_chat(client: ApiClient) -> None:
-    """Create a new chat session from currently selected sources."""
+    """Create a new chat session.
+
+    Args:
+        client: UI API client.
+
+    """
     create_result = client.create_session(
         source_ids=st.session_state["selected_session_source_ids"]
     )
@@ -204,7 +253,14 @@ def sync_session_sources(
     completed_ids: list[int],
     completed_map: dict[int, dict[str, Any]],
 ) -> None:
-    """Sync selected source IDs with the active chat session."""
+    """Synchronize selected sources with the active session.
+
+    Args:
+        client: UI API client.
+        completed_ids: IDs of completed sources.
+        completed_map: Completed sources keyed by ID.
+
+    """
     selected_sources = st.multiselect(
         "Sources for current chat session",
         options=completed_ids,
@@ -241,7 +297,16 @@ def sync_session_sources(
 
 
 def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, Any]]:
-    """Render message history for selected session."""
+    """Render chat history for the selected session.
+
+    Args:
+        client: UI API client.
+        session_id: Selected session ID, or None.
+
+    Returns:
+        Mutable chat history list for the current session.
+
+    """
     if session_id is None:
         st.info("Session will be created automatically on first message")
         return []
@@ -262,7 +327,15 @@ def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, 
 
 
 def ensure_session_for_prompt(client: ApiClient) -> int | None:
-    """Ensure a session exists before sending a prompt."""
+    """Ensure an active session exists before sending a prompt.
+
+    Args:
+        client: UI API client.
+
+    Returns:
+        Existing or newly created session ID, or None on failure.
+
+    """
     session_id = st.session_state["selected_session_id"]
     if session_id is not None:
         return int(session_id)
@@ -288,7 +361,17 @@ def send_prompt(
     model_name: str,
     tool_ids: list[str],
 ) -> None:
-    """Send a prompt and stream assistant response."""
+    """Send a prompt and stream assistant response.
+
+    Args:
+        client: UI API client.
+        prompt: User prompt text.
+        session_id: Active session ID.
+        provider_id: Selected provider ID.
+        model_name: Selected model name.
+        tool_ids: Selected tool IDs.
+
+    """
     history = get_chat_history(session_id)
     history.append(
         {
@@ -353,7 +436,12 @@ def send_prompt(
 
 
 def render_chat_tab(client: ApiClient) -> None:
-    """Render the Chat tab."""
+    """Render the Chat tab.
+
+    Args:
+        client: UI API client.
+
+    """
     st.subheader("Chat")
 
     provider_context = get_provider_context(client=client)
