@@ -35,7 +35,7 @@ When implementing changes, preserve this layering:
 
 ## API and Behavior Constraints
 
-- Chat endpoint `/chat/stream` requires query params `provider_id` and `model_name`.
+- Chat endpoint `/chat/stream` accepts `provider_id`, `model_name`, and tool configuration in request body.
 - Providers are managed in DB (`/provider` endpoints), not `.env` keys.
 - Source upload supports `.pdf`, `.txt`, `.md`, `.docx`, `.rtf`, `.odt`, `.epub`, `.html`, `.htm`, `.pptx`, `.xlsx`, and `.eml`.
 - Source processing is async and status-driven (`created -> processed -> completed` or `failed`).

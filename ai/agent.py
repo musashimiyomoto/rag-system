@@ -58,7 +58,7 @@ async def generate_agent(
 
         """
         source_summaries = []
-        for source_id in context.deps.source_ids:
+        for source_id in context.deps.session_source_ids:
             source = await SourceRepository().get_by(
                 session=context.deps.session, id=source_id
             )

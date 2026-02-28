@@ -353,6 +353,24 @@ def ensure_session_for_prompt(client: ApiClient) -> int | None:
     return new_session_id
 
 
+def build_chat_tools_payload(
+    selected_tool_ids: list[str], selected_source_ids: list[int]
+) -> list[dict[str, Any]] | None:
+    """Build chat tools payload for the API request."""
+    payload: list[dict[str, Any]] = []
+    for tool_id in selected_tool_ids:
+        if tool_id == "retrieve":
+            if not selected_source_ids:
+                st.error("Retrieve tool requires at least one source in the session")
+                return None
+            payload.append({"id": tool_id, "source_ids": list(selected_source_ids)})
+            continue
+
+        payload.append({"id": tool_id})
+
+    return payload
+
+
 def send_prompt(
     client: ApiClient,
     prompt: str,
@@ -360,6 +378,7 @@ def send_prompt(
     provider_id: int,
     model_name: str,
     tool_ids: list[str],
+    tools_payload: list[dict[str, Any]],
 ) -> None:
     """Send a prompt and stream assistant response.
 
@@ -370,6 +389,7 @@ def send_prompt(
         provider_id: Selected provider ID.
         model_name: Selected model name.
         tool_ids: Selected tool IDs.
+        tools_payload: Tools payload for backend request.
 
     """
     history = get_chat_history(session_id)
@@ -400,7 +420,7 @@ def send_prompt(
                 message=prompt,
                 provider_id=provider_id,
                 model_name=model_name,
-                tool_ids=tool_ids,
+                tools=tools_payload,
             ):
                 role = str(chunk.get("role", ""))
                 content = str(chunk.get("content", ""))
@@ -491,18 +511,24 @@ def render_chat_tab(client: ApiClient) -> None:
     render_history(client=client, session_id=current_session_id)
 
     prompt = st.chat_input("Write a message")
-    if not prompt:
-        return
+    if prompt:
+        tools_payload = build_chat_tools_payload(
+            selected_tool_ids=selected_tool_ids,
+            selected_source_ids=st.session_state["selected_session_source_ids"],
+        )
+        if tools_payload is None:
+            return
 
-    active_session_id = ensure_session_for_prompt(client=client)
-    if active_session_id is None:
-        return
+        active_session_id = ensure_session_for_prompt(client=client)
+        if active_session_id is None:
+            return
 
-    send_prompt(
-        client=client,
-        prompt=prompt,
-        session_id=active_session_id,
-        provider_id=selected_provider_id,
-        model_name=selected_model_name,
-        tool_ids=selected_tool_ids,
-    )
+        send_prompt(
+            client=client,
+            prompt=prompt,
+            session_id=active_session_id,
+            provider_id=selected_provider_id,
+            model_name=selected_model_name,
+            tool_ids=selected_tool_ids,
+            tools_payload=tools_payload,
+        )

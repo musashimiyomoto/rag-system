@@ -1,4 +1,10 @@
-from schemas.chat import ChatRequest, ChatResponse
+from schemas.chat import (
+    ChatRequest,
+    ChatResponse,
+    ChatToolRequest,
+    RetrieveToolRequest,
+    WebSearchToolRequest,
+)
 from schemas.health import HealthResponse, ServiceHealthResponse
 from schemas.message import MessageResponse
 from schemas.provider import (
@@ -17,6 +23,9 @@ __all__ = [
     "SourceResponse",
     "ChatRequest",
     "ChatResponse",
+    "ChatToolRequest",
+    "RetrieveToolRequest",
+    "WebSearchToolRequest",
     "MessageResponse",
     "SessionRequest",
     "SessionUpdateRequest",

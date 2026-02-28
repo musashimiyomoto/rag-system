@@ -297,7 +297,7 @@ class ApiClient:
         message: str,
         provider_id: int,
         model_name: str,
-        tool_ids: list[str],
+        tools: list[dict[str, Any]],
     ) -> Iterator[dict[str, Any]]:
         """Send a chat prompt and stream response chunks.
 
@@ -306,7 +306,7 @@ class ApiClient:
             message: User prompt text.
             provider_id: Provider ID.
             model_name: Model name.
-            tool_ids: Tool IDs enabled for this request.
+            tools: Tools enabled for this request.
 
         Yields:
             Streamed chat chunks as dictionaries.
@@ -316,19 +316,19 @@ class ApiClient:
 
         """
         url = f"{self.base_url}/chat/stream"
-        payload = {"session_id": session_id, "message": message}
-        params: dict[str, Any] = {
+        payload = {
+            "session_id": session_id,
+            "message": message,
             "provider_id": provider_id,
             "model_name": model_name,
+            "tools": tools,
         }
-        if tool_ids:
-            params["tool_ids"] = tool_ids
 
         try:
             timeout = httpx.Timeout(connect=30.0, write=30.0, read=600.0, pool=30.0)
             with (
                 httpx.Client(timeout=timeout) as client,
-                client.stream("POST", url, json=payload, params=params) as response,
+                client.stream("POST", url, json=payload) as response,
             ):
                 if not response.is_success:
                     raw_content = response.read()

@@ -10,16 +10,21 @@ class TestChatStream(BaseTestCase):
     url = "/chat/stream"
 
     @pytest.mark.asyncio
-    async def test_ok(self) -> None:
+    async def test_ok_without_tools(self) -> None:
         source = await SourceFactory.create_async(session=self.session)
         session = await SessionFactory.create_async(session=self.session)
         await SessionSourceFactory.create_async(
             session=self.session, session_id=session.id, source_id=source.id
         )
-        data = {"message": "Hello, how are you?", "session_id": session.id}
-        params = {"provider_id": 1, "model_name": "test-model"}
+        data = {
+            "message": "Hello, how are you?",
+            "session_id": session.id,
+            "provider_id": 1,
+            "model_name": "test-model",
+            "tools": [],
+        }
 
-        response = await self.client.post(url=self.url, json=data, params=params)
+        response = await self.client.post(url=self.url, json=data)
         await self.assert_response_stream(response=response)
 
     @pytest.mark.asyncio
@@ -29,42 +34,67 @@ class TestChatStream(BaseTestCase):
         await SessionSourceFactory.create_async(
             session=self.session, session_id=session.id, source_id=source.id
         )
-        data = {"message": "Hello, how are you?", "session_id": session.id}
-        params = {
+        data = {
+            "message": "Hello, how are you?",
+            "session_id": session.id,
             "provider_id": 1,
             "model_name": "test-model",
-            "tool_ids": ["web_search"],
+            "tools": [{"id": "web_search"}],
         }
 
-        response = await self.client.post(url=self.url, json=data, params=params)
+        response = await self.client.post(url=self.url, json=data)
         await self.assert_response_stream(response=response)
 
     @pytest.mark.asyncio
-    async def test_ok_with_web_search_tool_without_sources(self) -> None:
-        session = await SessionFactory.create_async(session=self.session)
-        data = {"message": "Hello, how are you?", "session_id": session.id}
-        params = {
-            "provider_id": 1,
-            "model_name": "test-model",
-            "tool_ids": ["web_search"],
-        }
-
-        response = await self.client.post(url=self.url, json=data, params=params)
-        await self.assert_response_stream(response=response)
-
-    @pytest.mark.asyncio
-    async def test_unknown_tool_id_returns_409(self) -> None:
+    async def test_ok_with_retrieve_tool_and_session_sources(self) -> None:
         source = await SourceFactory.create_async(session=self.session)
         session = await SessionFactory.create_async(session=self.session)
         await SessionSourceFactory.create_async(
             session=self.session, session_id=session.id, source_id=source.id
         )
-        data = {"message": "Hello, how are you?", "session_id": session.id}
-        params = {
+        data = {
+            "message": "Hello, how are you?",
+            "session_id": session.id,
             "provider_id": 1,
             "model_name": "test-model",
-            "tool_ids": ["unknown_tool"],
+            "tools": [{"id": "retrieve", "source_ids": [source.id]}],
         }
 
-        response = await self.client.post(url=self.url, json=data, params=params)
+        response = await self.client.post(url=self.url, json=data)
+        await self.assert_response_stream(response=response)
+
+    @pytest.mark.asyncio
+    async def test_retrieve_without_source_ids_returns_422(self) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
+        )
+        data = {
+            "message": "Hello, how are you?",
+            "session_id": session.id,
+            "provider_id": 1,
+            "model_name": "test-model",
+            "tools": [{"id": "retrieve"}],
+        }
+
+        response = await self.client.post(url=self.url, json=data)
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    @pytest.mark.asyncio
+    async def test_unknown_tool_id_returns_422(self) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
+        )
+        data = {
+            "message": "Hello, how are you?",
+            "session_id": session.id,
+            "provider_id": 1,
+            "model_name": "test-model",
+            "tools": [{"id": "unknown_tool"}],
+        }
+
+        response = await self.client.post(url=self.url, json=data)
         assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY

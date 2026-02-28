@@ -150,11 +150,11 @@ async def retrieve(context: RunContext[AgentDeps], search_query: str) -> str:
         The retrieved text or an error message.
 
     """
-    retrieve_context = context.deps.tool_context.retrieve
+    retrieve_context = context.deps.retrieve_context
     if not retrieve_context:
         return "Retrieve tool is not configured for this run"
 
-    allowed_source_ids = retrieve_context.allowed_source_ids or context.deps.source_ids
+    allowed_source_ids = retrieve_context.source_ids or context.deps.session_source_ids
     if len(allowed_source_ids) == 0:
         return "No sources attached to this session"
 
