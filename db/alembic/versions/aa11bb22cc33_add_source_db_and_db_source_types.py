@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "aa11bb22cc33"
@@ -28,7 +29,12 @@ def upgrade() -> None:
         sa.Column("source_id", sa.Integer(), nullable=False, comment="Source ID"),
         sa.Column(
             "db_type",
-            sa.Enum("POSTGRES", "CLICKHOUSE", name="sourcetype"),
+            postgresql.ENUM(
+                "POSTGRES",
+                "CLICKHOUSE",
+                name="sourcetype",
+                create_type=False,
+            ),
             nullable=False,
             comment="DB type",
         ),

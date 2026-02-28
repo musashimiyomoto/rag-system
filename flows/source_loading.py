@@ -1,16 +1,16 @@
-from db.repositories import SourceDbRepository, SourceFileRepository, SourceRepository
+from db.repositories import SourceRepository
 from db.sessions import async_session
 from enums import SourceStatus, SourceType
-from flows.source_processing.types import SourceProcessData
+from flows.db_processing.loading import load_source_db
+from flows.file_processing.loading import load_source_file_content
+from flows.types import SourceProcessData
 
 
 async def load_source_for_processing(
     source_id: int,
 ) -> tuple[SourceProcessData, bytes | None]:
-    """Load source, set processed status and return source content context."""
+    """Load source context and branch-specific payload for processing."""
     source_repository = SourceRepository()
-    source_file_repository = SourceFileRepository()
-    source_db_repository = SourceDbRepository()
 
     async with async_session() as session:
         source = await source_repository.update_by(
@@ -22,12 +22,10 @@ async def load_source_for_processing(
             msg = f"Source №{source_id} not found!"
             raise ValueError(msg)
 
-        source_db = await source_db_repository.get_by(
-            session=session, source_id=source_id
-        )
         file_content = None
         if source.type in SourceType.get_db_types():
-            if not source_db:
+            source_db = await load_source_db(session=session, source_id=source_id)
+            if source_db is None:
                 await source_repository.update_by(
                     session=session,
                     id=source_id,
@@ -36,10 +34,10 @@ async def load_source_for_processing(
                 msg = f"For source №{source_id} not found source_db!"
                 raise ValueError(msg)
         else:
-            source_file = await source_file_repository.get_by(
+            file_content = await load_source_file_content(
                 session=session, source_id=source_id
             )
-            if not source_file:
+            if file_content is None:
                 await source_repository.update_by(
                     session=session,
                     id=source_id,
@@ -47,7 +45,7 @@ async def load_source_for_processing(
                 )
                 msg = f"For source №{source_id} not found file!"
                 raise ValueError(msg)
-            file_content = source_file.content
+            source_db = None
 
     return {
         "id": source.id,

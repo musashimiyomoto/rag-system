@@ -1,8 +1,8 @@
 from prefect import flow
 
-from flows.source_processing.completion import _complete_processing_source
-from flows.source_processing.indexing import _index_source
-from flows.source_processing.summarization import _summarize_source
+from flows.completion import _complete_processing_source
+from flows.indexing import _index_source
+from flows.summarization import _summarize_source
 
 
 @flow(name="Process Source", timeout_seconds=2 * 3600, retries=3)

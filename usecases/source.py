@@ -27,7 +27,7 @@ from exceptions import (
     SourceTooLargeError,
     SourceValidationError,
 )
-from flows.source_processing.deployment import deploy_process_source_flow
+from flows.deployment import deploy_process_source_flow
 from schemas import (
     DbSourceCreateRequest,
     DbSourceIntrospectRequest,

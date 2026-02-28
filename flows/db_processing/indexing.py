@@ -2,9 +2,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
-from prefect import task
-
-from ai.vector_store import ensure_collection, upsert_chunks
+from ai.vector_store import upsert_chunks
 from constants import (
     DB_SUMMARY_SAMPLE_LIMIT,
     DB_SUMMARY_TEXT_PREVIEW_LENGTH,
@@ -16,15 +14,7 @@ from db.connectors import (
 )
 from db.models import SourceDb
 from enums import SourceType
-from flows.source_processing.extractors import _extract_text, _generate_chunks
-from flows.source_processing.source_loading import load_source_for_processing
 from utils import decrypt
-
-
-async def get_or_create_collection(name: str) -> str:
-    """Ensure Qdrant collection exists and return its name."""
-    await ensure_collection(name=name)
-    return name
 
 
 def _normalize_payload_value(value: object) -> object:
@@ -117,37 +107,6 @@ def _prepare_db_point(
     return point_id, text, payload, row_id
 
 
-async def _index_file_source(
-    source_id: int,
-    source_name: str,
-    source_type: SourceType,
-    collection: str,
-    content: bytes,
-) -> list[str]:
-    """Index file source and return text chunks for summary."""
-    chunks = _generate_chunks(
-        text=_extract_text(source_type=source_type, content=content)
-    )
-
-    await upsert_chunks(
-        collection=collection,
-        ids=[f"file:{i}" for i in range(len(chunks))],
-        texts=chunks,
-        payloads=[
-            {
-                "source_id": source_id,
-                "source_name": source_name,
-                "source_type": source_type.value,
-                "source_backend": "file",
-                "chunk_id": i,
-            }
-            for i in range(len(chunks))
-        ],
-    )
-
-    return chunks
-
-
 async def _index_db_source(
     source_id: int,
     source_name: str,
@@ -216,34 +175,3 @@ async def _index_db_source(
         raise ValueError(msg) from exc
 
     return summary_chunks
-
-
-@task(name="Index Source")
-async def _index_source(source_id: int) -> list[str]:
-    """Index source and return chunks for summary generation."""
-    source_data, file_content = await load_source_for_processing(source_id=source_id)
-
-    collection = await get_or_create_collection(name=str(source_data["collection"]))
-
-    source_type = source_data["type"]
-
-    if source_type in SourceType.get_db_types():
-        return await _index_db_source(
-            source_id=source_id,
-            source_name=str(source_data["name"]),
-            source_type=source_type,
-            collection=collection,
-            source_db=source_data["source_db"],
-        )
-
-    if file_content is None:
-        msg = f"For source №{source_id} not found file content!"
-        raise ValueError(msg)
-
-    return await _index_file_source(
-        source_id=source_id,
-        source_name=str(source_data["name"]),
-        source_type=source_type,
-        collection=collection,
-        content=file_content,
-    )

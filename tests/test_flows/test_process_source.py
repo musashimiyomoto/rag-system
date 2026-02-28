@@ -6,10 +6,10 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from enums import SourceStatus, SourceType
-from flows.source_processing.completion import _complete_processing_source
-from flows.source_processing.extractors import _extract_text
-from flows.source_processing.indexing import _index_source
-from flows.source_processing.summarization import _summarize_source
+from flows.completion import _complete_processing_source
+from flows.file_processing.extractors import _extract_text
+from flows.indexing import _index_source
+from flows.summarization import _summarize_source
 from tests.base import BaseTestCase
 from tests.factories import (
     ProviderFactory,
@@ -26,15 +26,17 @@ class TestIndexSourceTask(BaseTestCase):
     @pytest_asyncio.fixture(autouse=True)
     async def _mock_vector_store(self) -> AsyncGenerator[mock.MagicMock, None]:
         with (
+            mock.patch("flows.indexing.ensure_collection") as mock_ensure_collection,
             mock.patch(
-                "flows.source_processing.indexing.ensure_collection"
-            ) as mock_ensure_collection,
-            mock.patch(
-                "flows.source_processing.indexing.upsert_chunks"
+                "flows.file_processing.indexing.upsert_chunks"
             ) as mock_upsert_chunks,
+            mock.patch(
+                "flows.db_processing.indexing.upsert_chunks"
+            ) as mock_upsert_chunks_db,
         ):
             mock_ensure_collection.return_value = None
             mock_upsert_chunks.return_value = None
+            mock_upsert_chunks_db.return_value = None
             yield mock_upsert_chunks
 
     @pytest.mark.asyncio
@@ -52,9 +54,7 @@ class TestIndexSourceTask(BaseTestCase):
         mock_context_manager.__aexit__.return_value = None
         mock_async_session = mock.Mock(return_value=mock_context_manager)
 
-        with mock.patch(
-            "flows.source_processing.source_loading.async_session", mock_async_session
-        ):
+        with mock.patch("flows.source_loading.async_session", mock_async_session):
             chunks = await _index_source.fn(source_id=source.id)
 
             assert isinstance(chunks, list)
@@ -71,7 +71,7 @@ class TestIndexSourceTask(BaseTestCase):
 
         with (
             mock.patch(
-                "flows.source_processing.source_loading.async_session",
+                "flows.source_loading.async_session",
                 mock_async_session,
             ),
             pytest.raises(ValueError, match="not found file"),
@@ -112,11 +112,11 @@ class TestIndexSourceTask(BaseTestCase):
 
         with (
             mock.patch(
-                "flows.source_processing.source_loading.async_session",
+                "flows.source_loading.async_session",
                 mock_async_session,
             ),
             mock.patch(
-                "flows.source_processing.indexing.stream_postgres_rows",
+                "flows.db_processing.indexing.stream_postgres_rows",
                 side_effect=stream_rows,
             ),
         ):
@@ -146,7 +146,8 @@ class TestExtractText(BaseTestCase):
         mocked_reader.pages = [page_1, page_2]
 
         with mock.patch(
-            "flows.source_processing.extractors.PdfReader", return_value=mocked_reader
+            "flows.file_processing.extractors.PdfReader",
+            return_value=mocked_reader,
         ):
             text = _extract_text(source_type=SourceType.PDF, content=b"%PDF")
 
@@ -164,7 +165,7 @@ class TestExtractText(BaseTestCase):
     @pytest.mark.parametrize("source_type", [SourceType.HTML, SourceType.HTM])
     async def test_html(self, source_type: SourceType):
         with mock.patch(
-            "flows.source_processing.extractors._extract_html_text",
+            "flows.file_processing.extractors._extract_html_text",
             return_value="Title\n\nBody",
         ):
             text = _extract_text(source_type=source_type, content=b"<html></html>")
@@ -187,7 +188,7 @@ class TestExtractText(BaseTestCase):
         self, source_type: SourceType, helper_name: str
     ):
         with mock.patch(
-            f"flows.source_processing.extractors.{helper_name}",
+            f"flows.file_processing.extractors.{helper_name}",
             return_value="A\n\nB",
         ):
             text = _extract_text(source_type=source_type, content=b"binary")
@@ -197,9 +198,7 @@ class TestExtractText(BaseTestCase):
 class TestSummarizeSourceTask(BaseTestCase):
     @pytest_asyncio.fixture(autouse=True)
     async def _mock_summarize(self) -> AsyncGenerator[mock.MagicMock, None]:
-        with mock.patch(
-            "flows.source_processing.summarization.summarize"
-        ) as mock_summarize:
+        with mock.patch("flows.summarization.summarize") as mock_summarize:
             mock_summarize.return_value = "Mocked summary for chunk"
             yield mock_summarize
 
@@ -223,15 +222,15 @@ class TestSummarizeSourceTask(BaseTestCase):
 
         with (
             mock.patch(
-                "flows.source_processing.summarization.async_session",
+                "flows.summarization.async_session",
                 mock_async_session,
             ),
             mock.patch(
-                "flows.source_processing.summarization.list_provider_models",
+                "flows.summarization.list_provider_models",
                 return_value=[mock_model],
             ),
             mock.patch(
-                "flows.source_processing.summarization.decrypt",
+                "flows.summarization.decrypt",
                 return_value="decrypted_key",
             ),
         ):
@@ -255,12 +254,10 @@ class TestCompleteProcessingSourceTask(BaseTestCase):
 
         with (
             mock.patch(
-                "flows.source_processing.completion.async_session",
+                "flows.completion.async_session",
                 mock_async_session,
             ),
-            mock.patch(
-                "flows.source_processing.completion.upsert_chunks"
-            ) as mock_upsert_chunks,
+            mock.patch("flows.completion.upsert_chunks") as mock_upsert_chunks,
         ):
             await _complete_processing_source.fn(
                 source_id=source.id, summary=test_summary

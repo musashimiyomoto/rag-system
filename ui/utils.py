@@ -40,7 +40,38 @@ def show_table(data: list[dict[str, Any]], title: str | None = None) -> None:
     st.dataframe(data, width="stretch")
 
 
-def format_error_detail(detail: str | None) -> str:
+def _normalize_error_detail(detail: Any) -> str:
+    """Convert API error payloads to a readable string."""
+    normalized = ""
+
+    if detail is None:
+        normalized = ""
+    elif isinstance(detail, str):
+        normalized = detail
+    elif isinstance(detail, dict):
+        if "msg" in detail:
+            location = detail.get("loc")
+            message = str(detail.get("msg"))
+            if isinstance(location, list) and location:
+                loc_text = ".".join(str(item) for item in location)
+                normalized = f"{loc_text}: {message}"
+            else:
+                normalized = message
+        else:
+            normalized = ", ".join(
+                str(key) + ": " + _normalize_error_detail(value)
+                for key, value in detail.items()
+            )
+    elif isinstance(detail, list):
+        normalized_items = [_normalize_error_detail(item) for item in detail]
+        normalized = "; ".join(item for item in normalized_items if item)
+    else:
+        normalized = str(detail)
+
+    return normalized
+
+
+def format_error_detail(detail: Any) -> str:
     """Normalize error detail text for UI display.
 
     Args:
@@ -50,7 +81,8 @@ def format_error_detail(detail: str | None) -> str:
         User-facing error detail text.
 
     """
-    if not detail:
+    normalized_detail = _normalize_error_detail(detail).strip()
+    if not normalized_detail:
         return "Unknown error"
 
     known_conflicts = [
@@ -60,9 +92,9 @@ def format_error_detail(detail: str | None) -> str:
         "Session not found",
     ]
     for text in known_conflicts:
-        if text.lower() in detail.lower():
-            return detail
-    return detail
+        if text.lower() in normalized_detail.lower():
+            return normalized_detail
+    return normalized_detail
 
 
 def source_label(source: dict[str, Any]) -> str:

@@ -9,4 +9,4 @@ class ApiResult:
     ok: bool
     status_code: int
     data: Any | None = None
-    detail: str | None = None
+    detail: Any | None = None
