@@ -27,7 +27,7 @@ from exceptions import (
     SourceTooLargeError,
     SourceValidationError,
 )
-from flows.deployment import deploy_process_source_flow
+from flows import deploy_process_source_flow
 from schemas import (
     DbSourceCreateRequest,
     DbSourceIntrospectRequest,
@@ -247,7 +247,12 @@ class SourceUsecase:
 
     @staticmethod
     async def deploy_process_source_flow(source_id: int) -> None:
-        """Deploy the process source flow."""
+        """Deploy the process source flow.
+
+        Args:
+            source_id: The ID of the source to process.
+
+        """
         await run_deployment(name=await deploy_process_source_flow(source_id=source_id))  # ty:ignore[invalid-await]
 
     async def get_sources(self, session: AsyncSession) -> list[SourceResponse]:

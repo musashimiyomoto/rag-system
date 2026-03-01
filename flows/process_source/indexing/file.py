@@ -5,6 +5,7 @@ from io import BytesIO
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 
+from ai.vector_store import upsert_chunks
 from constants import UTF8
 from enums import SourceType
 
@@ -167,3 +168,34 @@ def _generate_chunks(text: str, chunk_size: int = 512) -> list[str]:
     return RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=0
     ).split_text(text=text)
+
+
+async def index_file_source(
+    source_id: int,
+    source_name: str,
+    source_type: SourceType,
+    collection: str,
+    content: bytes,
+) -> list[str]:
+    """Index file source and return text chunks for summary."""
+    chunks = _generate_chunks(
+        text=_extract_text(source_type=source_type, content=content)
+    )
+
+    await upsert_chunks(
+        collection=collection,
+        ids=[f"file:{i}" for i in range(len(chunks))],
+        texts=chunks,
+        payloads=[
+            {
+                "source_id": source_id,
+                "source_name": source_name,
+                "source_type": source_type.value,
+                "source_backend": "file",
+                "chunk_id": i,
+            }
+            for i in range(len(chunks))
+        ],
+    )
+
+    return chunks
