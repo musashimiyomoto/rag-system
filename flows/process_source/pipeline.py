@@ -31,6 +31,7 @@ async def _load_source_data(source_id: int) -> tuple[dict, bytes | None]:
 
     """
     source_repository = SourceRepository()
+    file_content: bytes | None = None
 
     async with async_session() as session:
         source = await source_repository.update_by(
@@ -67,6 +68,7 @@ async def _load_source_data(source_id: int) -> tuple[dict, bytes | None]:
                 msg = f"For source №{source_id} not found file!"
                 raise ValueError(msg)
             source_db = None
+            file_content = source_file.content
 
     return {
         "id": source.id,
@@ -74,7 +76,7 @@ async def _load_source_data(source_id: int) -> tuple[dict, bytes | None]:
         "type": source.type,
         "collection": source.collection,
         "source_db": source_db,
-    }, source_file.content
+    }, file_content
 
 
 @task(name="Index Source")
