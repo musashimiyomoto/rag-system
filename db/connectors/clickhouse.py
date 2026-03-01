@@ -70,7 +70,7 @@ async def introspect_clickhouse(
                 ORDER BY database, table, position
                 """
             )
-        return result.result_rows
+        return [tuple(row) for row in result.result_rows]
 
     try:
         rows = await asyncio.to_thread(_query)
