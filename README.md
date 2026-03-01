@@ -7,7 +7,7 @@
 
 # RAG System
 
-RAG system built with `FastAPI` + `PydanticAI` + `Qdrant`, with asynchronous source processing via `Prefect` and a `Streamlit` UI.
+RAG system built with `FastAPI` + `PydanticAI` + `Qdrant` + `Ollama`, with asynchronous source processing via `Prefect` and a `Streamlit` UI.
 
 ## Stack
 
@@ -16,6 +16,7 @@ RAG system built with `FastAPI` + `PydanticAI` + `Qdrant`, with asynchronous sou
 - Database: `PostgreSQL`
 - Vector store: `Qdrant`
 - Cache/broker: `Redis`
+- Local LLM service: `Ollama`
 - Pipeline orchestration: `Prefect`
 
 ## Requirements
