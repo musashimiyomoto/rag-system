@@ -7,7 +7,6 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     ModelResponsePart,
-    SystemPromptPart,
     TextPart,
     ThinkingPart,
     UserPromptPart,
@@ -15,7 +14,6 @@ from pydantic_ai.messages import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.dependencies import AgentDeps, RetrieveContext
-from ai.prompts import SYSTEM_PROMPT
 from db.repositories import (
     MessageRepository,
     SessionRepository,
@@ -84,9 +82,7 @@ class ChatUsecase:
             The list of model messages.
 
         """
-        results: list[ModelMessage] = [
-            ModelRequest(parts=[SystemPromptPart(content=SYSTEM_PROMPT)]),
-        ]
+        results: list[ModelMessage] = []
         for message in await self._message_repository.get_all(
             session=session, session_id=session_id
         ):
@@ -135,20 +131,6 @@ class ChatUsecase:
                             "role": Role.USER,
                             "session_id": session_id,
                             "content": first_part.content,
-                            "timestamp": current_time,
-                            "provider_id": data.provider_id,
-                            "model_name": data.model_name,
-                            "tool_ids": tool_ids,
-                        }
-                    )
-                elif isinstance(first_part, SystemPromptPart) and isinstance(
-                    second_part, UserPromptPart
-                ):
-                    records.append(
-                        {
-                            "role": Role.AGENT,
-                            "session_id": session_id,
-                            "content": second_part.content,
                             "timestamp": current_time,
                             "provider_id": data.provider_id,
                             "model_name": data.model_name,
