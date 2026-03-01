@@ -14,8 +14,6 @@ class ToolSpec:
     id: ToolId
     title: str
     description: str
-    enabled_by_default: bool
-    requires_sources: bool
     tool: Tool[Any] | Callable[..., Any]
 
 
@@ -26,16 +24,12 @@ TOOL_REGISTRY: dict[ToolId, ToolSpec] = {
         description=(
             "Search uploaded sources with semantic similarity and metadata filters"
         ),
-        enabled_by_default=True,
-        requires_sources=True,
         tool=Tool(retrieve),
     ),
     ToolId.WEB_SEARCH: ToolSpec(
         id=ToolId.WEB_SEARCH,
         title="Web Search",
         description="Search the web using DuckDuckGo",
-        enabled_by_default=True,
-        requires_sources=False,
         tool=duckduckgo_search_tool(),
     ),
 }

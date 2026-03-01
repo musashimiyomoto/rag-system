@@ -43,6 +43,7 @@ make build
 - API docs: `http://localhost:5000/docs`
 - Streamlit UI: `http://localhost:8501`
 - Prefect UI: `http://localhost:4200`
+- Qdrant UI: `http://localhost:6333/dashboard`
 
 4. Stop services:
 

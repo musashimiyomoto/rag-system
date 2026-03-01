@@ -15,8 +15,6 @@ class ToolUsecase:
                 id=tool.id,
                 title=tool.title,
                 description=tool.description,
-                enabled_by_default=tool.enabled_by_default,
-                requires_sources=tool.requires_sources,
             )
             for tool in TOOL_REGISTRY.values()
         ]

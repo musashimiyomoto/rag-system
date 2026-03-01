@@ -131,9 +131,7 @@ def get_tool_context(
     ]
     tools_map = {str(tool["id"]): tool for tool in tools}
     tool_ids = sorted(tools_map.keys())
-    default_tool_ids = [
-        str(tool["id"]) for tool in tools if bool(tool.get("enabled_by_default"))
-    ]
+    default_tool_ids: list[str] = []
     return tool_ids, tools_map, default_tool_ids
 
 
@@ -371,6 +369,56 @@ def build_chat_tools_payload(
     return payload
 
 
+def select_chat_tools(
+    tool_ids: list[str],
+    tools_map: dict[str, dict[str, Any]],
+) -> list[str]:
+    """Render tool selector and apply source-aware defaults."""
+    if "chat_tools_selector" not in st.session_state:
+        st.session_state["chat_tools_selector"] = [
+            tool_id
+            for tool_id in st.session_state["selected_tool_ids"]
+            if tool_id in tools_map
+        ]
+    else:
+        st.session_state["chat_tools_selector"] = [
+            tool_id
+            for tool_id in st.session_state["chat_tools_selector"]
+            if tool_id in tools_map
+        ]
+
+    return st.multiselect(
+        "Tools for this request",
+        options=tool_ids,
+        format_func=lambda tool_id: tool_label(tools_map[tool_id]),
+        key="chat_tools_selector",
+    )
+
+
+def sync_retrieve_tool_with_sources(tools_map: dict[str, dict[str, Any]]) -> None:
+    """Ensure retrieve is selected when sources are selected."""
+    if (
+        not st.session_state["selected_session_source_ids"]
+        or "retrieve" not in tools_map
+    ):
+        return
+
+    if "retrieve" not in st.session_state["selected_tool_ids"]:
+        st.session_state["selected_tool_ids"] = [
+            *st.session_state["selected_tool_ids"],
+            "retrieve",
+        ]
+
+    if (
+        "chat_tools_selector" in st.session_state
+        and "retrieve" not in st.session_state["chat_tools_selector"]
+    ):
+        st.session_state["chat_tools_selector"] = [
+            *st.session_state["chat_tools_selector"],
+            "retrieve",
+        ]
+
+
 def send_prompt(
     client: ApiClient,
     prompt: str,
@@ -469,25 +517,6 @@ def render_chat_tab(client: ApiClient) -> None:
         return
     selected_provider_id, selected_model_name = provider_context
 
-    tools_context = get_tool_context(client=client)
-    if tools_context is None:
-        return
-    tool_ids, tools_map, default_tool_ids = tools_context
-    if not st.session_state["selected_tool_ids"]:
-        st.session_state["selected_tool_ids"] = default_tool_ids
-    selected_tool_ids = st.multiselect(
-        "Tools for this request",
-        options=tool_ids,
-        default=[
-            tool_id
-            for tool_id in st.session_state["selected_tool_ids"]
-            if tool_id in tools_map
-        ],
-        format_func=lambda tool_id: tool_label(tools_map[tool_id]),
-        key="chat_tools_selector",
-    )
-    st.session_state["selected_tool_ids"] = selected_tool_ids
-
     sources_context = get_completed_sources(client=client)
     if sources_context is None:
         return
@@ -506,6 +535,17 @@ def render_chat_tab(client: ApiClient) -> None:
         completed_ids=completed_ids,
         completed_map=completed_map,
     )
+
+    tools_context = get_tool_context(client=client)
+    if tools_context is None:
+        return
+    tool_ids, tools_map, default_tool_ids = tools_context
+    if not st.session_state["selected_tool_ids"]:
+        st.session_state["selected_tool_ids"] = default_tool_ids
+    sync_retrieve_tool_with_sources(tools_map=tools_map)
+
+    selected_tool_ids = select_chat_tools(tool_ids=tool_ids, tools_map=tools_map)
+    st.session_state["selected_tool_ids"] = selected_tool_ids
 
     current_session_id = st.session_state["selected_session_id"]
     render_history(client=client, session_id=current_session_id)
