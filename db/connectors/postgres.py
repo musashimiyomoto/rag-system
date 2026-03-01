@@ -1,22 +1,34 @@
-import importlib
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
+
+import asyncpg
 
 from db.connectors.common import SourceDbConnectorError, validate_identifier
 
 
-def _get_asyncpg():
-    """Load asyncpg lazily to avoid hard import requirement at startup."""
-    return importlib.import_module("asyncpg")
-
-
 def _quote_postgres_identifier(value: str) -> str:
-    """Quote postgres identifier after strict validation."""
+    """Quote and validate a PostgreSQL identifier.
+
+    Args:
+        value: Identifier value to quote.
+
+    Returns:
+        Double-quoted validated identifier.
+
+    """
     return f'"{validate_identifier(value=value, field_name="identifier")}"'
 
 
 def _postgres_ssl_value(sslmode: str | None) -> bool | None:
-    """Map postgres sslmode to asyncpg ssl flag."""
+    """Map PostgreSQL `sslmode` to asyncpg `ssl` argument.
+
+    Args:
+        sslmode: PostgreSQL SSL mode string.
+
+    Returns:
+        `None` to use asyncpg default, `False` for `disable`, otherwise `True`.
+
+    """
     if sslmode is None:
         return None
 
@@ -26,7 +38,19 @@ def _postgres_ssl_value(sslmode: str | None) -> bool | None:
 async def introspect_postgres(
     credentials: Mapping[str, Any], schema_filter: str | None
 ) -> list[dict[str, Any]]:
-    """Introspect postgres tables and columns."""
+    """Introspect PostgreSQL table and column metadata.
+
+    Args:
+        credentials: Connection settings for PostgreSQL.
+        schema_filter: Optional schema name to limit results.
+
+    Returns:
+        Table metadata grouped by schema and table name.
+
+    Raises:
+        SourceDbConnectorError: If connection or query execution fails.
+
+    """
     params = [schema_filter] if schema_filter else []
     query = """
         SELECT
@@ -49,7 +73,6 @@ async def introspect_postgres(
             "AND c.table_schema = $1\n        ORDER BY",
         )
 
-    asyncpg = _get_asyncpg()
     conn = await asyncpg.connect(
         host=str(credentials["host"]),
         port=int(credentials["port"]),
@@ -95,7 +118,22 @@ async def stream_postgres_rows(
     columns: list[str],
     batch_size: int = 500,
 ) -> AsyncIterator[list[dict[str, Any]]]:
-    """Stream rows from postgres table in fixed-size batches."""
+    """Stream PostgreSQL rows in fixed-size batches.
+
+    Args:
+        credentials: Connection settings for PostgreSQL.
+        schema_name: Source schema name.
+        table_name: Source table name.
+        columns: List of column names to select.
+        batch_size: Maximum number of rows per yielded batch.
+
+    Yields:
+        Row batches represented as lists of dictionaries.
+
+    Raises:
+        SourceDbConnectorError: If connection or query execution fails.
+
+    """
     validated_columns = [
         _quote_postgres_identifier(validate_identifier(column, "column"))
         for column in columns
@@ -110,7 +148,6 @@ async def stream_postgres_rows(
         f"FROM {quoted_schema}.{quoted_table} LIMIT $1 OFFSET $2"
     )
 
-    asyncpg = _get_asyncpg()
     conn = await asyncpg.connect(
         host=str(credentials["host"]),
         port=int(credentials["port"]),

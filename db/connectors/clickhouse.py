@@ -1,28 +1,43 @@
 import asyncio
-import importlib
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
+
+import clickhouse_connect
 
 from db.connectors.common import SourceDbConnectorError, validate_identifier
 
 
-def _get_clickhouse_connect():
-    """Load clickhouse_connect lazily to avoid hard import requirement at startup."""
-    return importlib.import_module("clickhouse_connect")
-
-
 def _quote_clickhouse_identifier(value: str) -> str:
-    """Quote clickhouse identifier after strict validation."""
+    """Quote and validate a ClickHouse identifier.
+
+    Args:
+        value: Identifier value to quote.
+
+    Returns:
+        Backtick-quoted validated identifier.
+
+    """
     return f"`{validate_identifier(value=value, field_name='identifier')}`"
 
 
 async def introspect_clickhouse(
     credentials: Mapping[str, Any], schema_filter: str | None
 ) -> list[dict[str, Any]]:
-    """Introspect clickhouse tables and columns."""
+    """Introspect ClickHouse table and column metadata.
+
+    Args:
+        credentials: Connection settings for ClickHouse.
+        schema_filter: Optional database name to limit results.
+
+    Returns:
+        Table metadata grouped by schema and table name.
+
+    Raises:
+        SourceDbConnectorError: If connection or query execution fails.
+
+    """
 
     def _query() -> list[tuple[Any, ...]]:
-        clickhouse_connect = _get_clickhouse_connect()
         client = clickhouse_connect.get_client(
             host=str(credentials["host"]),
             port=int(credentials["port"]),
@@ -91,7 +106,22 @@ async def stream_clickhouse_rows(
     columns: list[str],
     batch_size: int = 500,
 ) -> AsyncIterator[list[dict[str, Any]]]:
-    """Stream rows from clickhouse table in fixed-size batches."""
+    """Stream ClickHouse rows in fixed-size batches.
+
+    Args:
+        credentials: Connection settings for ClickHouse.
+        schema_name: Source database name.
+        table_name: Source table name.
+        columns: List of column names to select.
+        batch_size: Maximum number of rows per yielded batch.
+
+    Yields:
+        Row batches represented as lists of dictionaries.
+
+    Raises:
+        SourceDbConnectorError: If connection or query execution fails.
+
+    """
     validated_columns = [
         _quote_clickhouse_identifier(validate_identifier(column, "column"))
         for column in columns
@@ -109,7 +139,6 @@ async def stream_clickhouse_rows(
     )
 
     def _query_batch(offset: int) -> list[dict[str, Any]]:
-        clickhouse_connect = _get_clickhouse_connect()
         client = clickhouse_connect.get_client(
             host=str(credentials["host"]),
             port=int(credentials["port"]),

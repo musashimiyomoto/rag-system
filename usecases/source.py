@@ -40,6 +40,8 @@ from utils import encrypt
 
 
 class SourceUsecase:
+    """Business logic for file and database sources."""
+
     def __init__(self):
         self._session_source_repository = SessionSourceRepository()
         self._source_repository = SourceRepository()
@@ -49,7 +51,20 @@ class SourceUsecase:
     def _validate_source(
         self, file_size: int | None, filename: str | None
     ) -> SourceType:
-        """Validate uploaded source file extension and size."""
+        """Validate uploaded file metadata and resolve source type.
+
+        Args:
+            file_size: Uploaded file size in bytes.
+            filename: Uploaded file name with extension.
+
+        Returns:
+            Validated source type derived from the file extension.
+
+        Raises:
+            SourceTooLargeError: If file size is missing or exceeds the limit.
+            SourceNotSupportedError: If extension is missing or unsupported.
+
+        """
         if not file_size or file_size > core_settings.max_file_size:
             raise SourceTooLargeError
 
@@ -71,12 +86,28 @@ class SourceUsecase:
 
     @staticmethod
     def _build_collection_name(prefix: str) -> str:
-        """Build stable collection name prefix for source storage."""
+        """Build a unique vector collection name for a source.
+
+        Args:
+            prefix: Source family prefix (`file` or `db`).
+
+        Returns:
+            Unique collection name with UUID suffix.
+
+        """
         return f"{prefix}_{uuid.uuid4().hex}"
 
     @staticmethod
     def _validate_db_source_type(source_type: SourceType) -> None:
-        """Validate source type for DB operations."""
+        """Ensure source type is allowed for DB-backed sources.
+
+        Args:
+            source_type: Requested source type.
+
+        Raises:
+            SourceValidationError: If type is not supported for DB sources.
+
+        """
         if source_type not in SourceType.get_db_types():
             msg = "DB source type must be postgres or clickhouse"
             raise SourceValidationError(message=msg)
@@ -87,7 +118,20 @@ class SourceUsecase:
         credentials: dict[str, Any],
         schema_filter: str | None,
     ) -> list[dict[str, Any]]:
-        """Run DB introspection for selected source type."""
+        """Introspect DB schema using the connector for the source type.
+
+        Args:
+            source_type: Database source type.
+            credentials: Connection credentials for the DB.
+            schema_filter: Optional schema name to limit introspection.
+
+        Returns:
+            Raw table metadata returned by connector introspection.
+
+        Raises:
+            SourceValidationError: If source type is not a supported DB type.
+
+        """
         if source_type == SourceType.POSTGRES:
             return await introspect_postgres(
                 credentials=credentials, schema_filter=schema_filter
@@ -104,7 +148,20 @@ class SourceUsecase:
     def _find_table_schema(
         tables: list[dict[str, Any]], schema_name: str, table_name: str
     ) -> dict[str, Any]:
-        """Find table schema by name and validate it exists."""
+        """Find a table description in introspection payload.
+
+        Args:
+            tables: Introspection result containing table metadata.
+            schema_name: Schema name to match.
+            table_name: Table name to match.
+
+        Returns:
+            Table metadata dict for the requested table.
+
+        Raises:
+            SourceValidationError: If the table is not found.
+
+        """
         for table in tables:
             if table["schema"] == schema_name and table["table"] == table_name:
                 return table
@@ -119,7 +176,18 @@ class SourceUsecase:
         search_field: str,
         filter_fields: list[str],
     ) -> None:
-        """Validate id/search/filter fields against table schema."""
+        """Validate configured field mapping against table columns.
+
+        Args:
+            table: Introspected table metadata with column definitions.
+            id_field: Column name used as unique identifier.
+            search_field: Column name used for text indexing.
+            filter_fields: Column names allowed for metadata filters.
+
+        Raises:
+            SourceValidationError: If unknown fields are used or duplicates exist.
+
+        """
         available_fields = {
             str(column["name"])
             for column in table["columns"]
@@ -146,7 +214,18 @@ class SourceUsecase:
         file_size: int | None,
         filename: str | None,
     ) -> SourceResponse:
-        """Create a new file source."""
+        """Create a file source record and persist file content.
+
+        Args:
+            session: Database session.
+            file: Uploaded file stream.
+            file_size: Uploaded file size in bytes.
+            filename: Uploaded file name.
+
+        Returns:
+            Created source response.
+
+        """
         source = await self._source_repository.create(
             session=session,
             data={
@@ -168,7 +247,18 @@ class SourceUsecase:
     async def introspect_db_source(
         self, data: DbSourceIntrospectRequest
     ) -> DbSourceIntrospectResponse:
-        """Introspect DB source and return available tables/columns."""
+        """Introspect a DB source and return available schema metadata.
+
+        Args:
+            data: Introspection request with source type and credentials.
+
+        Returns:
+            Available tables and columns for the connection.
+
+        Raises:
+            SourceConnectionError: If DB connection or introspection fails.
+
+        """
         self._validate_db_source_type(source_type=data.type)
 
         try:
@@ -189,7 +279,20 @@ class SourceUsecase:
         session: AsyncSession,
         data: DbSourceCreateRequest,
     ) -> SourceResponse:
-        """Create DB source with selected table field mapping."""
+        """Create a DB source with validated connection and field mapping.
+
+        Args:
+            session: Database session.
+            data: DB source creation payload.
+
+        Returns:
+            Created DB source response.
+
+        Raises:
+            SourceConnectionError: If DB introspection fails.
+            SourceValidationError: If selected table or fields are invalid.
+
+        """
         self._validate_db_source_type(source_type=data.type)
 
         try:
@@ -247,27 +350,52 @@ class SourceUsecase:
 
     @staticmethod
     async def deploy_process_source_flow(source_id: int) -> None:
-        """Deploy the process source flow.
+        """Trigger Prefect deployment for source processing.
 
         Args:
-            source_id: The ID of the source to process.
+            source_id: Source identifier to process.
 
         """
         await run_deployment(name=await deploy_process_source_flow(source_id=source_id))  # ty:ignore[invalid-await]
 
     async def get_sources(self, session: AsyncSession) -> list[SourceResponse]:
-        """Get all sources."""
+        """Return all sources.
+
+        Args:
+            session: Database session.
+
+        Returns:
+            List of all source responses.
+
+        """
         return [
             SourceResponse.model_validate(source)
             for source in await self._source_repository.get_all(session=session)
         ]
 
     def get_supported_source_types(self) -> list[str]:
-        """Get supported source types."""
+        """Return supported uploaded file source types.
+
+        Returns:
+            List of supported file source type values.
+
+        """
         return [source_type.value for source_type in SourceType.get_file_types()]
 
     async def get_source(self, session: AsyncSession, source_id: int) -> SourceResponse:
-        """Get source by ID."""
+        """Get a source by identifier.
+
+        Args:
+            session: Database session.
+            source_id: Source identifier.
+
+        Returns:
+            Source response.
+
+        Raises:
+            SourceNotFoundError: If source does not exist.
+
+        """
         source = await self._source_repository.get_by(session=session, id=source_id)
         if not source:
             raise SourceNotFoundError
@@ -275,7 +403,17 @@ class SourceUsecase:
         return SourceResponse.model_validate(source)
 
     async def delete_source(self, session: AsyncSession, id: int) -> None:
-        """Delete source and its vectors."""
+        """Delete a source and related vector data.
+
+        Args:
+            session: Database session.
+            id: Source identifier.
+
+        Raises:
+            SourceNotFoundError: If source does not exist.
+            SourceConflictError: If source is attached to one or more sessions.
+
+        """
         source = await self._source_repository.get_by(session=session, id=id)
         if not source:
             raise SourceNotFoundError

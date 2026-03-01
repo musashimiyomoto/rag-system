@@ -70,20 +70,3 @@ make test
 ## Environment Variables
 
 Base variables are defined in `.env.example`.
-
-## Chat API Example
-
-`POST /chat/stream`
-
-```json
-{
-  "session_id": 10,
-  "message": "Summarize session sources",
-  "provider_id": 1,
-  "model_name": "gpt-4o-mini",
-  "tools": [
-    {"id": "retrieve", "source_ids": [1, 2]},
-    {"id": "web_search"}
-  ]
-}
-```
