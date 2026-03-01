@@ -31,12 +31,13 @@ class ProviderUsecase:
             The created provider response.
 
         """
+        api_key = data.api_key or ""
         return ProviderResponse.model_validate(
             await self._provider_repository.create(
                 session=session,
                 data={
                     "name": data.name,
-                    "api_key_encrypted": encrypt(data=data.api_key),
+                    "api_key_encrypted": encrypt(data=api_key),
                     "is_active": True,
                 },
             )
@@ -74,6 +75,10 @@ class ProviderUsecase:
         updated_data = data.model_dump(exclude_none=True)
         if not updated_data:
             raise ProviderConflictError(message="No data provided for update")
+        if "api_key" in updated_data:
+            updated_data["api_key_encrypted"] = encrypt(
+                data=updated_data.pop("api_key")
+            )
 
         provider = await self._provider_repository.get_by(
             session=session, id=provider_id

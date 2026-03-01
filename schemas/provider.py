@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from enums import ProviderName
 
@@ -10,7 +10,17 @@ class ProviderBaseRequest(BaseModel):
 
 
 class ProviderCreateRequest(ProviderBaseRequest):
-    api_key: str = Field(default=..., description="Provider API key", min_length=1)
+    api_key: str | None = Field(default=None, description="Provider API key")
+
+    @model_validator(mode="after")
+    def validate_api_key(self) -> "ProviderCreateRequest":
+        if self.name in (ProviderName.OPENAI, ProviderName.GOOGLE) and (
+            not self.api_key or not self.api_key.strip()
+        ):
+            msg = f"api_key is required for provider: {self.name}"
+            raise ValueError(msg)
+
+        return self
 
 
 class ProviderUpdateRequest(BaseModel):
