@@ -15,6 +15,7 @@ class TestToolList(BaseTestCase):
         tool_ids = {str(item.get("id")) for item in data if isinstance(item, dict)}
         assert "retrieve" in tool_ids
         assert "web_search" in tool_ids
+        assert "deep_think" in tool_ids
         for item in data:
             if not isinstance(item, dict):
                 continue

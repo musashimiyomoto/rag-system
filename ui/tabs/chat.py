@@ -33,6 +33,7 @@ def load_session_messages(client: ApiClient, session_id: int) -> None:
                 "provider_id": item.get("provider_id"),
                 "model_name": item.get("model_name"),
                 "tool_ids": item.get("tool_ids") or [],
+                "thinking": item.get("thinking"),
             }
             for item in messages.data
         ]
@@ -316,7 +317,13 @@ def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, 
     for message in history:
         role = "assistant" if message.get("role") == "agent" else "user"
         with st.chat_message(role):
-            st.markdown(message.get("content", ""))
+            content = str(message.get("content", ""))
+            if content:
+                st.markdown(content)
+            thinking = str(message.get("thinking") or "")
+            if role == "assistant" and thinking:
+                with st.expander("Thinking", expanded=False):
+                    st.markdown(thinking)
             metadata_text = format_message_metadata(message)
             if metadata_text:
                 st.caption(metadata_text)
@@ -458,8 +465,10 @@ def send_prompt(
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
+        thinking_placeholder = st.empty()
         metadata_placeholder = st.empty()
         final_answer = ""
+        final_thinking = ""
         chunk_model_name = model_name
         chunk_tool_ids = list(tool_ids)
         try:
@@ -472,11 +481,20 @@ def send_prompt(
             ):
                 role = str(chunk.get("role", ""))
                 content = str(chunk.get("content", ""))
+                thinking = str(chunk.get("thinking") or "")
                 model_name_from_chunk = str(chunk.get("model_name", "")) or model_name
                 tool_ids_from_chunk = chunk.get("tool_ids") or tool_ids
                 if role == "agent":
-                    final_answer = merge_stream_chunk(final_answer, content)
-                    placeholder.markdown(final_answer)
+                    if content:
+                        final_answer = merge_stream_chunk(final_answer, content)
+                        placeholder.markdown(final_answer)
+                    if thinking:
+                        final_thinking = merge_stream_chunk(final_thinking, thinking)
+                        with (
+                            thinking_placeholder.container(),
+                            st.expander("Thinking", expanded=True),
+                        ):
+                            st.markdown(final_thinking)
                     chunk_model_name = model_name_from_chunk
                     chunk_tool_ids = [str(tool_id) for tool_id in tool_ids_from_chunk]
                     metadata_placeholder.caption(
@@ -491,11 +509,12 @@ def send_prompt(
             st.error(f"HTTP {exc.status_code}: {exc.detail}")
             return
 
-    if final_answer:
+    if final_answer or final_thinking:
         history.append(
             {
                 "role": "agent",
                 "content": final_answer,
+                "thinking": final_thinking or None,
                 "provider_id": provider_id,
                 "model_name": chunk_model_name,
                 "tool_ids": chunk_tool_ids,

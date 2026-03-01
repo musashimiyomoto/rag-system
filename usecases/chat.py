@@ -1,14 +1,19 @@
+import json
 from datetime import datetime
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from pydantic_ai import Agent
 from pydantic_ai.messages import (
+    FunctionToolResultEvent,
     ModelMessage,
     ModelRequest,
     ModelResponse,
     ModelResponsePart,
+    PartDeltaEvent,
     TextPart,
+    TextPartDelta,
     ThinkingPart,
+    ToolReturnPart,
     UserPromptPart,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -107,6 +112,7 @@ class ChatUsecase:
         session_id: int,
         messages: list[ModelMessage],
         data: ChatRequest,
+        thinking: str | None = None,
     ) -> None:
         """Save the message to the history.
 
@@ -115,6 +121,7 @@ class ChatUsecase:
             session_id: The session id.
             messages: The messages.
             data: The chat request data.
+            thinking: The thinking text captured from tool stream.
 
         """
         records = []
@@ -122,8 +129,10 @@ class ChatUsecase:
         current_time = datetime.now()
 
         for message in messages:
+            if len(message.parts) == 0:
+                continue
+
             first_part = message.parts[0]
-            second_part = message.parts[1] if len(message.parts) > 1 else None
             if isinstance(message, ModelRequest):
                 if isinstance(first_part, UserPromptPart):
                     records.append(
@@ -146,11 +155,7 @@ class ChatUsecase:
                         "session_id": session_id,
                         "content": first_part.content,
                         "timestamp": current_time,
-                        "thinking": (
-                            second_part.content
-                            if isinstance(second_part, ThinkingPart)
-                            else None
-                        ),
+                        "thinking": thinking,
                         "provider_id": data.provider_id,
                         "model_name": data.model_name,
                         "tool_ids": tool_ids,
@@ -158,6 +163,85 @@ class ChatUsecase:
                 )
 
         await self._message_repository.create_many(session=session, data=records)
+
+    @staticmethod
+    def _merge_stream_text(current_text: str, chunk_text: str) -> str:
+        """Merge streamed text chunks into one deterministic string.
+
+        Args:
+            current_text: The current full text before merging.
+            chunk_text: The new text chunk to merge.
+
+        Returns:
+            The merged full text after merging the new chunk.
+
+        """
+        if not chunk_text:
+            return current_text
+        if chunk_text == current_text:
+            return current_text
+        if chunk_text.startswith(current_text):
+            return chunk_text
+        if current_text.endswith(chunk_text):
+            return current_text
+        return current_text + chunk_text
+
+    @staticmethod
+    def _extract_text_chunk(event: Any) -> str | None:
+        """Extract text chunk from pydantic-ai stream event.
+
+        Args:
+            event: The stream event.
+
+        Returns:
+            The text chunk if the event is a text part delta, otherwise None.
+
+        """
+        if not isinstance(event, PartDeltaEvent):
+            return None
+
+        if not isinstance(event.delta, TextPartDelta):
+            return None
+
+        return event.delta.content_delta
+
+    @staticmethod
+    def _normalize_tool_content(content: Any) -> str:
+        """Normalize tool result content to a stable string.
+
+        Args:
+            content: The original tool result content, which can be of any type.
+
+        Returns:
+            The normalized string content.
+
+        """
+        if isinstance(content, str):
+            return content
+        if isinstance(content, bytes):
+            return content.decode("utf-8", errors="ignore")
+        if isinstance(content, (dict, list)):
+            return json.dumps(content, sort_keys=True)
+        return str(content)
+
+    @classmethod
+    def _extract_deep_think_chunk(cls, event: Any) -> str | None:
+        """Extract deep_think tool output chunk from stream event.
+
+        Args:
+            event: The stream event.
+
+        Returns:
+            The thinking chunk if the event is a deep_think tool output, otherwise None.
+
+        """
+        if not isinstance(event, FunctionToolResultEvent):
+            return None
+        if not isinstance(event.result, ToolReturnPart):
+            return None
+        if event.result.tool_name != ToolId.DEEP_THINK:
+            return None
+        return cls._normalize_tool_content(event.result.content)
 
     async def stream_messages(
         self, data: ChatRequest, session: AsyncSession, agent: Agent[AgentDeps, str]
@@ -199,8 +283,11 @@ class ChatUsecase:
             tool_ids=tool_ids,
         ).model_dump_bytes()
 
-        async with agent.run_stream(
-            data.message,
+        run_result = None
+        thinking = ""
+
+        async for event in agent.run_stream_events(
+            user_prompt=data.message,
             deps=AgentDeps(
                 session=session,
                 session_id=data.session_id,
@@ -214,20 +301,44 @@ class ChatUsecase:
             message_history=await self.get_message_history(
                 session=session, session_id=data.session_id
             ),
-        ) as result:
-            async for chunk in result.stream_output():
+        ):
+            text_chunk = self._extract_text_chunk(event=event)
+            if text_chunk is not None:
                 yield ChatResponse(
                     role=Role.AGENT,
-                    timestamp=result.timestamp(),
-                    content=chunk,
+                    timestamp=datetime.now(),
+                    content=text_chunk,
                     provider_id=data.provider_id,
                     model_name=data.model_name,
                     tool_ids=tool_ids,
                 ).model_dump_bytes()
 
+            thinking_chunk = self._extract_deep_think_chunk(event=event)
+            if thinking_chunk is not None:
+                thinking = self._merge_stream_text(
+                    current_text=thinking,
+                    chunk_text=thinking_chunk,
+                )
+                yield ChatResponse(
+                    role=Role.AGENT,
+                    timestamp=datetime.now(),
+                    content="",
+                    thinking=thinking_chunk,
+                    provider_id=data.provider_id,
+                    model_name=data.model_name,
+                    tool_ids=tool_ids,
+                ).model_dump_bytes()
+
+            if getattr(event, "event_kind", None) == "agent_run_result":
+                run_result = getattr(event, "result", None)
+
+        if run_result is None:
+            return
+
         await self.save_message_history(
             session=session,
             session_id=data.session_id,
-            messages=result.new_messages(),
+            messages=run_result.new_messages(),
             data=data,
+            thinking=thinking,
         )

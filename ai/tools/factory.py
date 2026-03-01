@@ -5,6 +5,7 @@ from typing import Any
 from pydantic_ai import Tool
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 
+from ai.tools.deep_think import deep_think
 from ai.tools.retrieve import retrieve
 from enums import ToolId
 
@@ -31,6 +32,12 @@ TOOL_REGISTRY: dict[ToolId, ToolSpec] = {
         title="Web Search",
         description="Search the web using DuckDuckGo",
         tool=duckduckgo_search_tool(),
+    ),
+    ToolId.DEEP_THINK: ToolSpec(
+        id=ToolId.DEEP_THINK,
+        title="Deep Think",
+        description="Generate a structured reasoning trace for the current task",
+        tool=Tool(deep_think),
     ),
 }
 
