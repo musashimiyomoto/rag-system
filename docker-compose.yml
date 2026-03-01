@@ -104,7 +104,7 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-      - ./backend/entrypoint.sh:/docker-entrypoint.sh:ro
+      - ./entrypoint.sh:/docker-entrypoint.sh:ro
     healthcheck:
       test:
         - "CMD"

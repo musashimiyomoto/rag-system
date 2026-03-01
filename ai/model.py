@@ -43,7 +43,7 @@ def get_model(
         return (
             openai.OpenAIChatModel(
                 model_name=model_name,
-                provider=OllamaProvider(base_url=ollama_settings.url),
+                provider=OllamaProvider(base_url=f"{ollama_settings.url}/v1"),
             ),
             openai.OpenAIChatModelSettings(),
         )
