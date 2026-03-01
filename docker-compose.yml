@@ -93,6 +93,28 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  ollama:
+    image: ${OLLAMA_IMAGE}
+    restart: always
+    entrypoint: [ "/bin/sh", "/docker-entrypoint.sh" ]
+    environment:
+      ENTRYPOINT_MODE: ollama
+      OLLAMA_BOOT_MODEL: qwen2.5:1.5b
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./entrypoint.sh:/docker-entrypoint.sh:ro
+    healthcheck:
+      test:
+        - "CMD"
+        - "curl"
+        - "-f"
+        - "http://localhost:11434/"
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
   prefect-server:
     <<: *prefect
     ports:
@@ -130,3 +152,4 @@ volumes:
   prefect_data:
   qdrant_data:
   redis_data:
+  ollama_data:

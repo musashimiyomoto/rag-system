@@ -3,10 +3,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from ai.vector_store import upsert_chunks
-from constants import (
-    DB_SUMMARY_SAMPLE_LIMIT,
-    DB_SUMMARY_TEXT_PREVIEW_LENGTH,
-)
+from constants import DB_SUMMARY_SAMPLE_LIMIT, DB_SUMMARY_TEXT_PREVIEW_LENGTH
 from db.connectors import (
     SourceDbConnectorError,
     stream_clickhouse_rows,
@@ -18,11 +15,21 @@ from utils import decrypt
 
 
 def _normalize_payload_value(value: object) -> object:
-    """Normalize payload value for Qdrant metadata."""
+    """Normalize payload value for Qdrant metadata.
+
+    Args:
+        value: The value to normalize.
+
+    Returns:
+        The normalized value.
+
+    """
     if value is None:
         return None
+
     if isinstance(value, (str, int, float, bool)):
         return value
+
     if isinstance(value, list):
         normalized = []
         for item in value:
@@ -42,7 +49,22 @@ def _select_db_row_stream(
     table_name: str,
     columns: list[str],
 ) -> AsyncIterator[list[dict[str, Any]]]:
-    """Select row stream implementation for DB source type."""
+    """Select row stream implementation for DB source type.
+
+    Args:
+        source_type: The DB source type.
+        credentials: The DB connection credentials.
+        schema_name: The DB schema name.
+        table_name: The DB table name.
+        columns: The list of columns to select from the table.
+
+    Returns:
+        An async iterator yielding batches of rows as dictionaries.
+
+    Raises:
+        ValueError: If the source type is unsupported.
+
+    """
     if source_type == SourceType.POSTGRES:
         return stream_postgres_rows(
             credentials=credentials,
@@ -50,6 +72,7 @@ def _select_db_row_stream(
             table_name=table_name,
             columns=columns,
         )
+
     if source_type == SourceType.CLICKHOUSE:
         return stream_clickhouse_rows(
             credentials=credentials,
@@ -63,7 +86,16 @@ def _select_db_row_stream(
 
 
 def _build_db_summary_header(source_name: str, source_db: SourceDb) -> str:
-    """Build summary header for DB source."""
+    """Build summary header for DB source.
+
+    Args:
+        source_name: The source name.
+        source_db: The SourceDb object.
+
+    Returns:
+        The summary header string.
+
+    """
     filter_fields = (
         ", ".join(source_db.filter_fields) if source_db.filter_fields else "-"
     )
@@ -81,7 +113,19 @@ def _prepare_db_point(
     source_db: SourceDb,
     row: dict[str, object],
 ) -> tuple[str, str, dict[str, object], str] | None:
-    """Prepare one DB row as Qdrant point payload."""
+    """Prepare one DB row as Qdrant point payload.
+
+    Args:
+        source_id: The source ID.
+        source_name: The source name.
+        source_type: The DB source type.
+        source_db: The SourceDb object.
+        row: The DB row as a dictionary.
+
+    Returns:
+        A tuple of (point_id, text, payload, row_id) or None if the row is not valid.
+
+    """
     row_id_value = row.get(source_db.id_field)
     if row_id_value is None:
         return None
@@ -107,14 +151,29 @@ def _prepare_db_point(
     return point_id, text, payload, row_id
 
 
-async def _index_db_source(
+async def index_db_source(
     source_id: int,
     source_name: str,
     source_type: SourceType,
     collection: str,
     source_db: SourceDb | None,
 ) -> list[str]:
-    """Index DB source table rows and return summary input chunks."""
+    """Index DB source table rows and return summary input chunks.
+
+    Args:
+        source_id: The source ID.
+        source_name: The source name.
+        source_type: The DB source type.
+        collection: The Qdrant collection name to index into.
+        source_db: The SourceDb object or None if not found.
+
+    Returns:
+        A list of summary input chunks describing the indexed source.
+
+    Raises:
+        ValueError: If the source_db is None or if there is an error during indexing.
+
+    """
     if source_db is None:
         msg = f"For source №{source_id} not found source_db!"
         raise ValueError(msg)

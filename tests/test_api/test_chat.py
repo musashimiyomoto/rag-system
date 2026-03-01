@@ -64,6 +64,24 @@ class TestChatStream(BaseTestCase):
         await self.assert_response_stream(response=response)
 
     @pytest.mark.asyncio
+    async def test_ok_with_deep_think_tool(self) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
+        )
+        data = {
+            "message": "Plan migration rollout",
+            "session_id": session.id,
+            "provider_id": 1,
+            "model_name": "test-model",
+            "tools": [{"id": "deep_think"}],
+        }
+
+        response = await self.client.post(url=self.url, json=data)
+        await self.assert_response_stream(response=response)
+
+    @pytest.mark.asyncio
     async def test_retrieve_without_source_ids_returns_422(self) -> None:
         source = await SourceFactory.create_async(session=self.session)
         session = await SessionFactory.create_async(session=self.session)

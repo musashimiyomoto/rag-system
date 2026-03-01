@@ -22,8 +22,15 @@ class WebSearchToolRequest(BaseModel):
     )
 
 
+class DeepThinkToolRequest(BaseModel):
+    id: Literal[ToolId.DEEP_THINK] = Field(
+        default=ToolId.DEEP_THINK, description="Deep think tool ID"
+    )
+
+
 ChatToolRequest = Annotated[
-    RetrieveToolRequest | WebSearchToolRequest, Field(discriminator="id")
+    RetrieveToolRequest | WebSearchToolRequest | DeepThinkToolRequest,
+    Field(discriminator="id"),
 ]
 
 
@@ -38,7 +45,6 @@ class ChatRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_tools(self) -> "ChatRequest":
-        """Validate that tool IDs are unique."""
         tool_ids = [tool.id for tool in self.tools]
         if len(tool_ids) != len(set(tool_ids)):
             msg = "Duplicate tool IDs are not allowed"
@@ -50,15 +56,10 @@ class ChatResponse(BaseModel):
     role: Role = Field(default=..., description="The role of the message")
     timestamp: datetime = Field(default=..., description="The timestamp of the message")
     content: str = Field(default=..., description="The content of the message")
+    thinking: str | None = Field(default=None, description="The thinking content")
     provider_id: int | None = Field(default=None, description="The provider ID")
     model_name: str | None = Field(default=None, description="The model name")
     tool_ids: list[ToolId] = Field(default_factory=list, description="The tool IDs")
 
     def model_dump_bytes(self) -> bytes:
-        """Dump the model to bytes.
-
-        Returns:
-            The bytes of the model.
-
-        """
         return self.model_dump_json().encode(UTF8) + b"\n"

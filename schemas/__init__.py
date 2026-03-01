@@ -2,6 +2,7 @@ from schemas.chat import (
     ChatRequest,
     ChatResponse,
     ChatToolRequest,
+    DeepThinkToolRequest,
     RetrieveToolRequest,
     WebSearchToolRequest,
 )
@@ -40,6 +41,7 @@ __all__ = [
     "ChatRequest",
     "ChatResponse",
     "ChatToolRequest",
+    "DeepThinkToolRequest",
     "RetrieveToolRequest",
     "WebSearchToolRequest",
     "MessageResponse",

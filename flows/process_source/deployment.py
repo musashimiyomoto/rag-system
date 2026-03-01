@@ -6,10 +6,18 @@ from settings import BASE_PATH, prefect_settings
 
 
 async def deploy_process_source_flow(source_id: int) -> UUID:
-    """Deploy the process source flow."""
+    """Deploy the process source flow.
+
+    Args:
+        source_id: The ID of the source to process.
+
+    Returns:
+        The deployment ID of the process source flow.
+
+    """
     deployment = await flow.from_source(
         source=BASE_PATH,
-        entrypoint="flows/pipeline.py:process_source",
+        entrypoint="flows/process_source/pipeline.py:process_source",
     )  # ty:ignore[invalid-await]
 
     return await deployment.deploy(

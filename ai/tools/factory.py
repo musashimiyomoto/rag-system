@@ -5,6 +5,7 @@ from typing import Any
 from pydantic_ai import Tool
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 
+from ai.tools.deep_think import deep_think
 from ai.tools.retrieve import retrieve
 from enums import ToolId
 
@@ -14,8 +15,6 @@ class ToolSpec:
     id: ToolId
     title: str
     description: str
-    enabled_by_default: bool
-    requires_sources: bool
     tool: Tool[Any] | Callable[..., Any]
 
 
@@ -26,17 +25,19 @@ TOOL_REGISTRY: dict[ToolId, ToolSpec] = {
         description=(
             "Search uploaded sources with semantic similarity and metadata filters"
         ),
-        enabled_by_default=True,
-        requires_sources=True,
         tool=Tool(retrieve),
     ),
     ToolId.WEB_SEARCH: ToolSpec(
         id=ToolId.WEB_SEARCH,
         title="Web Search",
         description="Search the web using DuckDuckGo",
-        enabled_by_default=True,
-        requires_sources=False,
         tool=duckduckgo_search_tool(),
+    ),
+    ToolId.DEEP_THINK: ToolSpec(
+        id=ToolId.DEEP_THINK,
+        title="Deep Think",
+        description="Generate a structured reasoning trace for the current task",
+        tool=Tool(deep_think),
     ),
 }
 

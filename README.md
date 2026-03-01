@@ -7,7 +7,7 @@
 
 # RAG System
 
-RAG system built with `FastAPI` + `PydanticAI` + `Qdrant`, with asynchronous source processing via `Prefect` and a `Streamlit` UI.
+RAG system built with `FastAPI` + `PydanticAI` + `Qdrant` + `Ollama`, with asynchronous source processing via `Prefect` and a `Streamlit` UI.
 
 ## Stack
 
@@ -16,6 +16,7 @@ RAG system built with `FastAPI` + `PydanticAI` + `Qdrant`, with asynchronous sou
 - Database: `PostgreSQL`
 - Vector store: `Qdrant`
 - Cache/broker: `Redis`
+- Local LLM service: `Ollama`
 - Pipeline orchestration: `Prefect`
 
 ## Requirements
@@ -43,6 +44,7 @@ make build
 - API docs: `http://localhost:5000/docs`
 - Streamlit UI: `http://localhost:8501`
 - Prefect UI: `http://localhost:4200`
+- Qdrant UI: `http://localhost:6333/dashboard`
 
 4. Stop services:
 
@@ -70,20 +72,3 @@ make test
 ## Environment Variables
 
 Base variables are defined in `.env.example`.
-
-## Chat API Example
-
-`POST /chat/stream`
-
-```json
-{
-  "session_id": 10,
-  "message": "Summarize session sources",
-  "provider_id": 1,
-  "model_name": "gpt-4o-mini",
-  "tools": [
-    {"id": "retrieve", "source_ids": [1, 2]},
-    {"id": "web_search"}
-  ]
-}
-```

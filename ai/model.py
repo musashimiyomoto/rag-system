@@ -1,10 +1,12 @@
 from pydantic_ai.models import Model, google, openai
 from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.settings import ModelSettings
 
 from enums import ProviderName
 from exceptions import ProviderValidationError
+from settings import ollama_settings
 
 
 def get_model(
@@ -33,6 +35,15 @@ def get_model(
         return (
             openai.OpenAIChatModel(
                 model_name=model_name, provider=OpenAIProvider(api_key=api_key)
+            ),
+            openai.OpenAIChatModelSettings(),
+        )
+
+    if provider_name == ProviderName.OLLAMA:
+        return (
+            openai.OpenAIChatModel(
+                model_name=model_name,
+                provider=OllamaProvider(base_url=f"{ollama_settings.url}/v1"),
             ),
             openai.OpenAIChatModelSettings(),
         )

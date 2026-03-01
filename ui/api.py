@@ -278,7 +278,7 @@ class ApiClient:
         """
         return self._request("DELETE", f"/session/{session_id}")
 
-    def create_provider(self, name: str, api_key: str) -> ApiResult:
+    def create_provider(self, name: str, api_key: str | None = None) -> ApiResult:
         """Create a provider.
 
         Args:
@@ -289,7 +289,9 @@ class ApiClient:
             Provider creation response.
 
         """
-        payload = {"name": name, "api_key": api_key}
+        payload: dict[str, Any] = {"name": name}
+        if api_key is not None:
+            payload["api_key"] = api_key
         return self._request("POST", "/provider", json=payload)
 
     def list_providers(self) -> ApiResult:

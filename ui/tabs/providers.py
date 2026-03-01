@@ -13,11 +13,14 @@ def render_providers_tab(client: ApiClient) -> None:
     """
     st.subheader("Providers")
     with st.form("create_provider"):
-        provider_name = st.selectbox("Provider", options=["openai", "google"])
-        api_key = st.text_input("API Key", type="password")
+        provider_name = st.selectbox("Provider", options=["openai", "google", "ollama"])
+        api_key = st.text_input("API Key (optional for ollama)", type="password")
         submitted = st.form_submit_button("Create provider")
         if submitted:
-            create_result = client.create_provider(name=provider_name, api_key=api_key)
+            api_key_value = api_key.strip() or None
+            create_result = client.create_provider(
+                name=provider_name, api_key=api_key_value
+            )
             show_result(create_result, "Provider created")
 
     providers = client.list_providers()
