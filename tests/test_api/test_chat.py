@@ -1,5 +1,6 @@
 import json
 from http import HTTPStatus
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from pydantic_ai import AgentRunResultEvent
@@ -16,6 +17,9 @@ from api.dependencies import agent
 from main import app
 from tests.base import BaseTestCase
 from tests.factories import SessionFactory, SessionSourceFactory, SourceFactory
+
+if TYPE_CHECKING:
+    from pydantic_ai.run import AgentRunResult
 
 
 class TestChatStream(BaseTestCase):
@@ -109,7 +113,9 @@ class TestChatStream(BaseTestCase):
                         tool_name="web_search", content="web result 1"
                     )
                 )
-                yield AgentRunResultEvent(result=FakeRunResult())
+                yield AgentRunResultEvent(
+                    result=cast("AgentRunResult[str]", FakeRunResult())
+                )
 
         async def override_get_agent():
             return FakeAgent()
@@ -152,7 +158,9 @@ class TestChatStream(BaseTestCase):
                 yield FunctionToolResultEvent(
                     result=ToolReturnPart(tool_name="retrieve", content="retrieved row")
                 )
-                yield AgentRunResultEvent(result=FakeRunResult())
+                yield AgentRunResultEvent(
+                    result=cast("AgentRunResult[str]", FakeRunResult())
+                )
 
         async def override_get_agent():
             return FakeAgent()

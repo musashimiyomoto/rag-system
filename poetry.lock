@@ -3130,6 +3130,7 @@ executing = ">=2.0.1"
 opentelemetry-exporter-otlp-proto-http = ">=1.39.0,<1.40.0"
 opentelemetry-instrumentation = ">=0.41b0"
 opentelemetry-instrumentation-fastapi = {version = ">=0.42b0", optional = true, markers = "extra == \"fastapi\""}
+opentelemetry-instrumentation-httpx = {version = ">=0.42b0", optional = true, markers = "extra == \"httpx\""}
 opentelemetry-instrumentation-redis = {version = ">=0.42b0", optional = true, markers = "extra == \"redis\""}
 opentelemetry-instrumentation-sqlalchemy = {version = ">=0.42b0", optional = true, markers = "extra == \"sqlalchemy\""}
 opentelemetry-sdk = ">=1.39.0,<1.40.0"
@@ -4340,6 +4341,28 @@ opentelemetry-util-http = "0.60b1"
 
 [package.extras]
 instruments = ["fastapi (>=0.92,<1.0)"]
+
+[[package]]
+name = "opentelemetry-instrumentation-httpx"
+version = "0.60b1"
+description = "OpenTelemetry HTTPX Instrumentation"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "opentelemetry_instrumentation_httpx-0.60b1-py3-none-any.whl", hash = "sha256:f37636dd742ad2af83d896ba69601ed28da51fa4e25d1ab62fde89ce413e275b"},
+    {file = "opentelemetry_instrumentation_httpx-0.60b1.tar.gz", hash = "sha256:a506ebaf28c60112cbe70ad4f0338f8603f148938cb7b6794ce1051cd2b270ae"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.12,<2.0"
+opentelemetry-instrumentation = "0.60b1"
+opentelemetry-semantic-conventions = "0.60b1"
+opentelemetry-util-http = "0.60b1"
+wrapt = ">=1.0.0,<2.0.0"
+
+[package.extras]
+instruments = ["httpx (>=0.18.0)"]
 
 [[package]]
 name = "opentelemetry-instrumentation-redis"
@@ -8627,4 +8650,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.11.*"
-content-hash = "9fe4ebb12ea0c442597bfa62f57f366df241380367a2df3692800d74438f36c9"
+content-hash = "d82dc96901d41a258c286064b42d87a71c2f6f5fe8dae83592e01089ca2d53c4"

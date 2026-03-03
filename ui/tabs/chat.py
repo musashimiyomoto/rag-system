@@ -189,6 +189,19 @@ def get_sessions_context(client: ApiClient) -> dict[int, dict[str, Any]] | None:
     }
 
 
+def resolve_effective_session_id(sessions_map: dict[int, dict[str, Any]]) -> int | None:
+    """Resolve active session from selector/state and validate against map."""
+    selected_session_id = st.session_state.get("selected_session_id")
+    if isinstance(selected_session_id, int) and selected_session_id in sessions_map:
+        return selected_session_id
+
+    selector_session_id = st.session_state.get("chat_session_selector")
+    if isinstance(selector_session_id, int) and selector_session_id in sessions_map:
+        return selector_session_id
+
+    return None
+
+
 def select_session(client: ApiClient, sessions_map: dict[int, dict[str, Any]]) -> None:
     """Render session selector and synchronize session state.
 
@@ -201,19 +214,22 @@ def select_session(client: ApiClient, sessions_map: dict[int, dict[str, Any]]) -
         sessions_map.keys(), reverse=True
     )
 
-    current_session_id = st.session_state["selected_session_id"]
-    if current_session_id not in sessions_map:
-        current_session_id = None
-        st.session_state["selected_session_id"] = None
+    current_session_id = resolve_effective_session_id(sessions_map=sessions_map)
+    st.session_state["selected_session_id"] = current_session_id
+    if (
+        "chat_session_selector" not in st.session_state
+        or st.session_state["chat_session_selector"] not in session_options
+        or st.session_state["chat_session_selector"] != current_session_id
+    ):
+        st.session_state["chat_session_selector"] = current_session_id
 
     selected_session_id = st.selectbox(
         "Session",
         options=session_options,
-        index=session_options.index(current_session_id),
         format_func=lambda item: session_label(item, sessions_map),
         key="chat_session_selector",
     )
-    if selected_session_id == st.session_state["selected_session_id"]:
+    if selected_session_id == current_session_id:
         return
 
     st.session_state["selected_session_id"] = selected_session_id
@@ -341,7 +357,9 @@ def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, 
     return history
 
 
-def ensure_session_for_prompt(client: ApiClient) -> int | None:
+def ensure_session_for_prompt(
+    client: ApiClient, sessions_map: dict[int, dict[str, Any]]
+) -> int | None:
     """Ensure an active session exists before sending a prompt.
 
     Args:
@@ -351,8 +369,9 @@ def ensure_session_for_prompt(client: ApiClient) -> int | None:
         Existing or newly created session ID, or None on failure.
 
     """
-    session_id = st.session_state["selected_session_id"]
+    session_id = resolve_effective_session_id(sessions_map=sessions_map)
     if session_id is not None:
+        st.session_state["selected_session_id"] = session_id
         return int(session_id)
 
     create_result = client.create_session(
@@ -452,7 +471,8 @@ def send_prompt(
     model_name: str,
     tool_ids: list[str],
     tools_payload: list[dict[str, Any]],
-) -> None:
+    live_response_container: Any,
+) -> bool:
     """Send a prompt and stream assistant response.
 
     Args:
@@ -463,6 +483,7 @@ def send_prompt(
         model_name: Selected model name.
         tool_ids: Selected tool IDs.
         tools_payload: Tools payload for backend request.
+        live_response_container: Container rendered above chat input.
 
     """
     history = get_chat_history(session_id)
@@ -475,79 +496,88 @@ def send_prompt(
             "tool_ids": list(tool_ids),
         }
     )
-    with st.chat_message("user"):
-        st.markdown(prompt)
-        metadata_text = format_message_metadata(history[-1])
-        if metadata_text:
-            st.caption(metadata_text)
+    with live_response_container:
+        with st.chat_message("user"):
+            st.markdown(prompt)
+            metadata_text = format_message_metadata(history[-1])
+            if metadata_text:
+                st.caption(metadata_text)
 
-    with st.chat_message("assistant"):
-        placeholder = st.empty()
-        thinking_placeholder = st.empty()
-        web_search_placeholder = st.empty()
-        retrieve_placeholder = st.empty()
-        metadata_placeholder = st.empty()
-        final_answer = ""
-        final_thinking = ""
-        final_web_search = ""
-        final_retrieve = ""
-        chunk_model_name = model_name
-        chunk_tool_ids = list(tool_ids)
-        try:
-            for chunk in client.stream_chat(
-                session_id=session_id,
-                message=prompt,
-                provider_id=provider_id,
-                model_name=model_name,
-                tools=tools_payload,
-            ):
-                role = str(chunk.get("role", ""))
-                content = str(chunk.get("content", ""))
-                thinking = str(chunk.get("thinking") or "")
-                web_search = str(chunk.get("web_search") or "")
-                retrieve = str(chunk.get("retrieve") or "")
-                model_name_from_chunk = str(chunk.get("model_name", "")) or model_name
-                tool_ids_from_chunk = chunk.get("tool_ids") or tool_ids
-                if role == "agent":
-                    if content:
-                        final_answer = merge_stream_chunk(final_answer, content)
-                        placeholder.markdown(final_answer)
-                    if thinking:
-                        final_thinking = merge_stream_chunk(final_thinking, thinking)
-                        render_tool_result(
-                            placeholder=thinking_placeholder,
-                            title="Thinking",
-                            content=final_thinking,
-                        )
-                    if web_search:
-                        final_web_search = merge_stream_chunk(
-                            final_web_search, web_search
-                        )
-                        render_tool_result(
-                            placeholder=web_search_placeholder,
-                            title="Web Search",
-                            content=final_web_search,
-                        )
-                    if retrieve:
-                        final_retrieve = merge_stream_chunk(final_retrieve, retrieve)
-                        render_tool_result(
-                            placeholder=retrieve_placeholder,
-                            title="Retrieve",
-                            content=final_retrieve,
-                        )
-                    chunk_model_name = model_name_from_chunk
-                    chunk_tool_ids = [str(tool_id) for tool_id in tool_ids_from_chunk]
-                    metadata_placeholder.caption(
-                        format_message_metadata(
-                            {
-                                "model_name": chunk_model_name,
-                                "tool_ids": chunk_tool_ids,
-                            }
-                        )
+        with st.chat_message("assistant"):
+            placeholder = st.empty()
+            thinking_placeholder = st.empty()
+            web_search_placeholder = st.empty()
+            retrieve_placeholder = st.empty()
+            metadata_placeholder = st.empty()
+            final_answer = ""
+            final_thinking = ""
+            final_web_search = ""
+            final_retrieve = ""
+            chunk_model_name = model_name
+            chunk_tool_ids = list(tool_ids)
+            try:
+                for chunk in client.stream_chat(
+                    session_id=session_id,
+                    message=prompt,
+                    provider_id=provider_id,
+                    model_name=model_name,
+                    tools=tools_payload,
+                ):
+                    role = str(chunk.get("role", ""))
+                    content = str(chunk.get("content", ""))
+                    thinking = str(chunk.get("thinking") or "")
+                    web_search = str(chunk.get("web_search") or "")
+                    retrieve = str(chunk.get("retrieve") or "")
+                    model_name_from_chunk = (
+                        str(chunk.get("model_name", "")) or model_name
                     )
-        except ApiClientError as exc:
-            st.error(f"HTTP {exc.status_code}: {exc.detail}")
-            return
+                    tool_ids_from_chunk = chunk.get("tool_ids") or tool_ids
+                    if role == "agent":
+                        if content:
+                            final_answer = merge_stream_chunk(final_answer, content)
+                            placeholder.markdown(final_answer)
+                        if thinking:
+                            final_thinking = merge_stream_chunk(
+                                final_thinking, thinking
+                            )
+                            render_tool_result(
+                                placeholder=thinking_placeholder,
+                                title="Thinking",
+                                content=final_thinking,
+                            )
+                        if web_search:
+                            final_web_search = merge_stream_chunk(
+                                final_web_search, web_search
+                            )
+                            render_tool_result(
+                                placeholder=web_search_placeholder,
+                                title="Web Search",
+                                content=final_web_search,
+                            )
+                        if retrieve:
+                            final_retrieve = merge_stream_chunk(
+                                final_retrieve, retrieve
+                            )
+                            render_tool_result(
+                                placeholder=retrieve_placeholder,
+                                title="Retrieve",
+                                content=final_retrieve,
+                            )
+                        chunk_model_name = model_name_from_chunk
+                        chunk_tool_ids = [
+                            str(tool_id) for tool_id in tool_ids_from_chunk
+                        ]
+                        metadata_placeholder.caption(
+                            format_message_metadata(
+                                {
+                                    "model_name": chunk_model_name,
+                                    "tool_ids": chunk_tool_ids,
+                                }
+                            )
+                        )
+            except ApiClientError as exc:
+                st.error(f"HTTP {exc.status_code}: {exc.detail}")
+                return False
 
     if final_answer or final_thinking or final_web_search or final_retrieve:
         history.append(
@@ -562,6 +592,48 @@ def send_prompt(
                 "tool_ids": chunk_tool_ids,
             }
         )
+
+    return True
+
+
+def handle_prompt_submission(
+    client: ApiClient,
+    sessions_map: dict[int, dict[str, Any]],
+    selected_provider_id: int,
+    selected_model_name: str,
+    selected_tool_ids: list[str],
+    live_response_container: Any,
+) -> None:
+    """Handle chat input submit and response rendering for a single rerun."""
+    prompt = st.chat_input("Write a message")
+    if not prompt:
+        return
+
+    tools_payload = build_chat_tools_payload(
+        selected_tool_ids=selected_tool_ids,
+        selected_source_ids=st.session_state["selected_session_source_ids"],
+    )
+    if tools_payload is None:
+        return
+
+    active_session_id = ensure_session_for_prompt(
+        client=client, sessions_map=sessions_map
+    )
+    if active_session_id is None:
+        return
+
+    send_ok = send_prompt(
+        client=client,
+        prompt=prompt,
+        session_id=active_session_id,
+        provider_id=selected_provider_id,
+        model_name=selected_model_name,
+        tool_ids=selected_tool_ids,
+        tools_payload=tools_payload,
+        live_response_container=live_response_container,
+    )
+    if send_ok:
+        st.rerun()
 
 
 def render_chat_tab(client: ApiClient) -> None:
@@ -610,26 +682,12 @@ def render_chat_tab(client: ApiClient) -> None:
 
     current_session_id = st.session_state["selected_session_id"]
     render_history(client=client, session_id=current_session_id)
-
-    prompt = st.chat_input("Write a message")
-    if prompt:
-        tools_payload = build_chat_tools_payload(
-            selected_tool_ids=selected_tool_ids,
-            selected_source_ids=st.session_state["selected_session_source_ids"],
-        )
-        if tools_payload is None:
-            return
-
-        active_session_id = ensure_session_for_prompt(client=client)
-        if active_session_id is None:
-            return
-
-        send_prompt(
-            client=client,
-            prompt=prompt,
-            session_id=active_session_id,
-            provider_id=selected_provider_id,
-            model_name=selected_model_name,
-            tool_ids=selected_tool_ids,
-            tools_payload=tools_payload,
-        )
+    live_response_container = st.container()
+    handle_prompt_submission(
+        client=client,
+        sessions_map=sessions_map,
+        selected_provider_id=selected_provider_id,
+        selected_model_name=selected_model_name,
+        selected_tool_ids=selected_tool_ids,
+        live_response_container=live_response_container,
+    )

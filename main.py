@@ -27,6 +27,7 @@ logfire.instrument_fastapi(app=app)
 logfire.instrument_sqlalchemy(engine=async_engine)
 logfire.instrument_redis()
 logfire.instrument_pydantic_ai()
+logfire.instrument_httpx()
 
 app.add_middleware(
     middleware_class=CORSMiddleware,  # ty: ignore[invalid-argument-type]
