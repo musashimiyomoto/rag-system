@@ -1,0 +1,42 @@
+name: Test Docker Compose
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test-docker-compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create env file
+        run: cp .env.example .env
+
+      - name: Build containers
+        run: docker compose build
+
+      - name: Start services
+        run: docker compose up -d --wait api ui
+
+      - name: Test API is up
+        run: curl -f http://localhost:5000/health/liveness
+
+      - name: Test UI is up
+        run: curl -f http://localhost:8501
+
+      - name: Show compose status on failure
+        if: failure()
+        run: docker compose ps
+
+      - name: Show compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans

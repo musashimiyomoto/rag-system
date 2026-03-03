@@ -1,7 +1,10 @@
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
-[![CI/CD Pipeline](https://github.com/musashimiyomoto/rag-system/actions/workflows/ci.yml/badge.svg)](https://github.com/musashimiyomoto/rag-system/actions/workflows/ci.yml)
+[![Lint](https://github.com/musashimiyomoto/rag-system/actions/workflows/lint.yml/badge.svg)](https://github.com/musashimiyomoto/rag-system/actions/workflows/lint.yml)
+[![Type Checking](https://github.com/musashimiyomoto/rag-system/actions/workflows/type-checking.yml/badge.svg)](https://github.com/musashimiyomoto/rag-system/actions/workflows/type-checking.yml)
+[![Test Backend](https://github.com/musashimiyomoto/rag-system/actions/workflows/test-backend.yml/badge.svg)](https://github.com/musashimiyomoto/rag-system/actions/workflows/test-backend.yml)
+[![Test Docker Compose](https://github.com/musashimiyomoto/rag-system/actions/workflows/test-docker-compose.yml/badge.svg)](https://github.com/musashimiyomoto/rag-system/actions/workflows/test-docker-compose.yml)
 
 
 # RAG System
