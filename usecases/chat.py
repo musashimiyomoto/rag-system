@@ -256,6 +256,19 @@ class ChatUsecase:
             return None
         return cls._normalize_tool_content(event.result.content)
 
+    @staticmethod
+    def _extract_executed_tool_id(event: Any) -> ToolId | None:
+        """Extract executed tool id from stream event."""
+        if not isinstance(event, FunctionToolResultEvent):
+            return None
+        if not isinstance(event.result, ToolReturnPart):
+            return None
+
+        try:
+            return ToolId(str(event.result.tool_name))
+        except ValueError:
+            return None
+
     async def stream_messages(
         self, data: ChatRequest, session: AsyncSession, agent: Agent[AgentDeps, str]
     ) -> AsyncGenerator[bytes, None]:
@@ -297,9 +310,8 @@ class ChatUsecase:
         ).model_dump_bytes()
 
         run_result = None
-        thinking = ""
-        web_search = ""
-        retrieve = ""
+        thinking, web_search, retrieve = "", "", ""
+        executed_tool_ids: set[ToolId] = set()
 
         async for event in agent.run_stream_events(
             user_prompt=data.message,
@@ -317,6 +329,10 @@ class ChatUsecase:
                 session=session, session_id=data.session_id
             ),
         ):
+            executed_tool_id = self._extract_executed_tool_id(event=event)
+            if executed_tool_id is not None:
+                executed_tool_ids.add(executed_tool_id)
+
             text_chunk = self._extract_text_chunk(event=event)
             if text_chunk is not None:
                 yield ChatResponse(
@@ -382,13 +398,30 @@ class ChatUsecase:
             if isinstance(event, AgentRunResultEvent):
                 run_result = event.result
 
-        if run_result is None:
-            return
+        missing_tool_ids = [
+            tool_id for tool_id in tool_ids if tool_id not in executed_tool_ids
+        ]
+        warnings = (
+            [f"Selected tools not executed: {', '.join(missing_tool_ids)}"]
+            if missing_tool_ids
+            else []
+        )
+
+        if warnings:
+            yield ChatResponse(
+                role=Role.AGENT,
+                timestamp=datetime.now(),
+                content="",
+                provider_id=data.provider_id,
+                model_name=data.model_name,
+                tool_ids=tool_ids,
+                warnings=warnings,
+            ).model_dump_bytes()
 
         await self.save_message_history(
             session=session,
             session_id=data.session_id,
-            messages=run_result.new_messages(),
+            messages=run_result.new_messages() if run_result else [],
             data=data,
             thinking=thinking,
             web_search=web_search,

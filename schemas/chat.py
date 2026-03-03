@@ -62,6 +62,7 @@ class ChatResponse(BaseModel):
     provider_id: int | None = Field(default=None, description="The provider ID")
     model_name: str | None = Field(default=None, description="The model name")
     tool_ids: list[ToolId] = Field(default_factory=list, description="The tool IDs")
+    warnings: list[str] | None = Field(default=None, description="Runtime warnings")
 
     def model_dump_bytes(self) -> bytes:
         return self.model_dump_json().encode(UTF8) + b"\n"

@@ -4,11 +4,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai.dependencies import AgentDeps
 from ai.model import get_model
 from ai.prompts import SYSTEM_PROMPT
-from ai.tools import get_tools
+from ai.tools import TOOL_REGISTRY, get_tools
 from db.repositories import ProviderRepository, SourceRepository
 from enums import ToolId
 from exceptions import ProviderConflictError, ProviderNotFoundError
 from utils import decrypt
+
+
+def _render_selected_tools_context(tool_ids: list[ToolId]) -> str:
+    """Render selected tools for the system prompt."""
+    if not tool_ids:
+        return "No tools selected for this run."
+
+    lines = []
+    for tool_id in tool_ids:
+        spec = TOOL_REGISTRY.get(tool_id)
+        if not spec:
+            continue
+
+        lines.append(f"- {spec.id}: {spec.description}")
+
+    if not lines:
+        return "No tools selected for this run."
+
+    return "\n".join(lines)
 
 
 async def generate_agent(
@@ -57,6 +76,7 @@ async def generate_agent(
             The rendered system prompt with source summaries.
 
         """
+        selected_tools_context = _render_selected_tools_context(tool_ids=tool_ids)
         source_summaries = []
         for source_id in context.deps.session_source_ids:
             source = await SourceRepository().get_by(
@@ -71,9 +91,10 @@ async def generate_agent(
             )
 
         return SYSTEM_PROMPT.format(
+            selected_tools=selected_tools_context,
             source_summary="\n\n".join(source_summaries)
             if source_summaries
-            else "Empty summary"
+            else "Empty summary",
         )
 
     return agent

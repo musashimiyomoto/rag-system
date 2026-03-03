@@ -183,6 +183,158 @@ class TestChatStream(BaseTestCase):
         assert any(chunk.get("retrieve") == "retrieved row" for chunk in chunks)
 
     @pytest.mark.asyncio
+    async def test_stream_contains_warning_when_selected_tool_not_executed(
+        self,
+    ) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
+        )
+
+        class FakeRunResult:
+            def new_messages(self) -> list:
+                return [
+                    ModelRequest(parts=[UserPromptPart(content="question")]),
+                    ModelResponse(parts=[TextPart(content="answer")]),
+                ]
+
+        class FakeAgent:
+            async def run_stream_events(self, **kwargs):
+                _ = kwargs
+                yield AgentRunResultEvent(
+                    result=cast("AgentRunResult[str]", FakeRunResult())
+                )
+
+        async def override_get_agent():
+            return FakeAgent()
+
+        app.dependency_overrides[agent.get_agent] = override_get_agent
+
+        response = await self.client.post(
+            url=self.url,
+            json={
+                "message": "Hello, how are you?",
+                "session_id": session.id,
+                "provider_id": 1,
+                "model_name": "test-model",
+                "tools": [{"id": "web_search"}],
+            },
+        )
+
+        assert response.status_code == HTTPStatus.OK
+        chunks = await self._read_stream_chunks(response=response)
+        assert any(
+            chunk.get("warnings") == ["Selected tools not executed: web_search"]
+            for chunk in chunks
+        )
+
+    @pytest.mark.asyncio
+    async def test_stream_contains_warning_for_partially_executed_tools(self) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
+        )
+
+        class FakeRunResult:
+            def new_messages(self) -> list:
+                return [
+                    ModelRequest(parts=[UserPromptPart(content="question")]),
+                    ModelResponse(parts=[TextPart(content="answer")]),
+                ]
+
+        class FakeAgent:
+            async def run_stream_events(self, **kwargs):
+                _ = kwargs
+                yield FunctionToolResultEvent(
+                    result=ToolReturnPart(
+                        tool_name="web_search", content="web result 1"
+                    )
+                )
+                yield AgentRunResultEvent(
+                    result=cast("AgentRunResult[str]", FakeRunResult())
+                )
+
+        async def override_get_agent():
+            return FakeAgent()
+
+        app.dependency_overrides[agent.get_agent] = override_get_agent
+
+        response = await self.client.post(
+            url=self.url,
+            json={
+                "message": "Hello, how are you?",
+                "session_id": session.id,
+                "provider_id": 1,
+                "model_name": "test-model",
+                "tools": [{"id": "web_search"}, {"id": "deep_think"}],
+            },
+        )
+
+        assert response.status_code == HTTPStatus.OK
+        chunks = await self._read_stream_chunks(response=response)
+        assert any(
+            chunk.get("warnings") == ["Selected tools not executed: deep_think"]
+            for chunk in chunks
+        )
+
+    @pytest.mark.asyncio
+    async def test_stream_has_no_warning_when_all_selected_tools_executed(self) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
+        )
+
+        class FakeRunResult:
+            def new_messages(self) -> list:
+                return [
+                    ModelRequest(parts=[UserPromptPart(content="question")]),
+                    ModelResponse(parts=[TextPart(content="answer")]),
+                ]
+
+        class FakeAgent:
+            async def run_stream_events(self, **kwargs):
+                _ = kwargs
+                yield FunctionToolResultEvent(
+                    result=ToolReturnPart(
+                        tool_name="web_search", content="web result 1"
+                    )
+                )
+                yield FunctionToolResultEvent(
+                    result=ToolReturnPart(tool_name="retrieve", content="retrieved row")
+                )
+                yield AgentRunResultEvent(
+                    result=cast("AgentRunResult[str]", FakeRunResult())
+                )
+
+        async def override_get_agent():
+            return FakeAgent()
+
+        app.dependency_overrides[agent.get_agent] = override_get_agent
+
+        response = await self.client.post(
+            url=self.url,
+            json={
+                "message": "Hello, how are you?",
+                "session_id": session.id,
+                "provider_id": 1,
+                "model_name": "test-model",
+                "tools": [
+                    {"id": "web_search"},
+                    {"id": "retrieve", "source_ids": [source.id]},
+                ],
+            },
+        )
+
+        assert response.status_code == HTTPStatus.OK
+        chunks = await self._read_stream_chunks(response=response)
+        assert all(
+            "warnings" not in chunk or not chunk.get("warnings") for chunk in chunks
+        )
+
+    @pytest.mark.asyncio
     async def test_ok_with_deep_think_tool(self) -> None:
         source = await SourceFactory.create_async(session=self.session)
         session = await SessionFactory.create_async(session=self.session)

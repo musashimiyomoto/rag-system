@@ -36,6 +36,7 @@ def load_session_messages(client: ApiClient, session_id: int) -> None:
                 "thinking": item.get("thinking"),
                 "web_search": item.get("web_search"),
                 "retrieve": item.get("retrieve"),
+                "warnings": item.get("warnings") or [],
             }
             for item in messages.data
         ]
@@ -313,7 +314,9 @@ def sync_session_sources(
     st.rerun()
 
 
-def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, Any]]:
+def render_history(  # noqa: C901
+    client: ApiClient, session_id: int | None
+) -> list[dict[str, Any]]:
     """Render chat history for the selected session.
 
     Args:
@@ -350,6 +353,11 @@ def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, 
             if role == "assistant" and retrieve:
                 with st.expander("Retrieve", expanded=False):
                     st.markdown(retrieve)
+            warnings = message.get("warnings") or []
+            if role == "assistant" and warnings:
+                with st.expander("Warnings", expanded=True):
+                    for warning in warnings:
+                        st.warning(str(warning))
             metadata_text = format_message_metadata(message)
             if metadata_text:
                 st.caption(metadata_text)
@@ -463,7 +471,7 @@ def render_tool_result(
         st.markdown(content)
 
 
-def send_prompt(
+def send_prompt(  # noqa: C901, PLR0912, PLR0915
     client: ApiClient,
     prompt: str,
     session_id: int,
@@ -508,11 +516,13 @@ def send_prompt(
             thinking_placeholder = st.empty()
             web_search_placeholder = st.empty()
             retrieve_placeholder = st.empty()
+            warnings_placeholder = st.empty()
             metadata_placeholder = st.empty()
             final_answer = ""
             final_thinking = ""
             final_web_search = ""
             final_retrieve = ""
+            final_warnings: list[str] = []
             chunk_model_name = model_name
             chunk_tool_ids = list(tool_ids)
             try:
@@ -528,6 +538,7 @@ def send_prompt(
                     thinking = str(chunk.get("thinking") or "")
                     web_search = str(chunk.get("web_search") or "")
                     retrieve = str(chunk.get("retrieve") or "")
+                    warnings = chunk.get("warnings") or []
                     model_name_from_chunk = (
                         str(chunk.get("model_name", "")) or model_name
                     )
@@ -563,6 +574,18 @@ def send_prompt(
                                 title="Retrieve",
                                 content=final_retrieve,
                             )
+                        if warnings:
+                            for warning in warnings:
+                                warning_text = str(warning)
+                                if warning_text in final_warnings:
+                                    continue
+                                final_warnings.append(warning_text)
+                            with (
+                                warnings_placeholder.container(),
+                                st.expander("Warnings", expanded=True),
+                            ):
+                                for warning in final_warnings:
+                                    st.warning(warning)
                         chunk_model_name = model_name_from_chunk
                         chunk_tool_ids = [
                             str(tool_id) for tool_id in tool_ids_from_chunk
@@ -579,7 +602,13 @@ def send_prompt(
                 st.error(f"HTTP {exc.status_code}: {exc.detail}")
                 return False
 
-    if final_answer or final_thinking or final_web_search or final_retrieve:
+    if (
+        final_answer
+        or final_thinking
+        or final_web_search
+        or final_retrieve
+        or final_warnings
+    ):
         history.append(
             {
                 "role": "agent",
@@ -590,6 +619,7 @@ def send_prompt(
                 "provider_id": provider_id,
                 "model_name": chunk_model_name,
                 "tool_ids": chunk_tool_ids,
+                "warnings": final_warnings,
             }
         )
 
@@ -622,7 +652,7 @@ def handle_prompt_submission(
     if active_session_id is None:
         return
 
-    send_ok = send_prompt(
+    send_prompt(
         client=client,
         prompt=prompt,
         session_id=active_session_id,
@@ -632,8 +662,6 @@ def handle_prompt_submission(
         tools_payload=tools_payload,
         live_response_container=live_response_container,
     )
-    if send_ok:
-        st.rerun()
 
 
 def render_chat_tab(client: ApiClient) -> None:
