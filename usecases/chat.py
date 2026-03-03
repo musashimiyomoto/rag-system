@@ -10,6 +10,7 @@ from pydantic_ai.messages import (
     ModelResponse,
     ModelResponsePart,
     PartDeltaEvent,
+    PartStartEvent,
     TextPart,
     TextPartDelta,
     ThinkingPart,
@@ -197,6 +198,11 @@ class ChatUsecase:
             The text chunk if the event is a text part delta, otherwise None.
 
         """
+        if isinstance(event, PartStartEvent):
+            if isinstance(event.part, TextPart):
+                return event.part.content
+            return None
+
         if not isinstance(event, PartDeltaEvent):
             return None
 

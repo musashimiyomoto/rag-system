@@ -1,5 +1,6 @@
 from pydantic_ai.models import Model, anthropic, google, openai
 from pydantic_ai.providers.anthropic import AnthropicProvider
+from pydantic_ai.providers.github import GitHubProvider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -49,7 +50,7 @@ def get_model(
         case ProviderName.GITHUB:
             return (
                 openai.OpenAIChatModel(
-                    model_name=model_name, provider=OpenAIProvider(api_key=api_key)
+                    model_name=model_name, provider=GitHubProvider(api_key=api_key)
                 ),
                 openai.OpenAIChatModelSettings(),
             )

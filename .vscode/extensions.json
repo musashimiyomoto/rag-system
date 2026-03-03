@@ -1,10 +1,7 @@
 {
 	"recommendations": [
-    "FastAPILabs.fastapi-vscode",
     "astral-sh.ty",
     "charliermarsh.ruff",
-    "docker.docker",
-    "github.vscode-github-actions",
     "ms-python.debugpy",
     "ms-python.python",
     "ms-python.vscode-pylance",
