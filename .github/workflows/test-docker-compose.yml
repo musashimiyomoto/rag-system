@@ -23,11 +23,29 @@ jobs:
       - name: Start services
         run: docker compose up -d --wait api ui
 
-      - name: Test API is up
-        run: curl -f http://localhost:5000/health/liveness
+      - name: Wait for API readiness
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health/liveness >/dev/null; then
+              exit 0
+            fi
+            echo "API is not ready yet (attempt ${i}/30), waiting..."
+            sleep 2
+          done
+          echo "API did not become ready in time."
+          exit 1
 
-      - name: Test UI is up
-        run: curl -f http://localhost:8501
+      - name: Wait for UI readiness
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8501 >/dev/null; then
+              exit 0
+            fi
+            echo "UI is not ready yet (attempt ${i}/30), waiting..."
+            sleep 2
+          done
+          echo "UI did not become ready in time."
+          exit 1
 
       - name: Show compose status on failure
         if: failure()
