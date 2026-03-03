@@ -57,6 +57,8 @@ class ChatResponse(BaseModel):
     timestamp: datetime = Field(default=..., description="The timestamp of the message")
     content: str = Field(default=..., description="The content of the message")
     thinking: str | None = Field(default=None, description="The thinking content")
+    web_search: str | None = Field(default=None, description="The web search content")
+    retrieve: str | None = Field(default=None, description="The retrieve content")
     provider_id: int | None = Field(default=None, description="The provider ID")
     model_name: str | None = Field(default=None, description="The model name")
     tool_ids: list[ToolId] = Field(default_factory=list, description="The tool IDs")

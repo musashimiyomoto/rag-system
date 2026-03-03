@@ -21,6 +21,8 @@ class Message(Base):
     role: Mapped[Role] = mapped_column(comment="Role")
     content: Mapped[str] = mapped_column(comment="Content")
     thinking: Mapped[str | None] = mapped_column(comment="Thinking")
+    web_search: Mapped[str | None] = mapped_column(comment="Web search")
+    retrieve: Mapped[str | None] = mapped_column(comment="Retrieve")
     provider_id: Mapped[int | None] = mapped_column(comment="Provider ID")
     model_name: Mapped[str | None] = mapped_column(comment="Model name")
     tool_ids: Mapped[list[ToolId]] = mapped_column(JSON, comment="Tool IDs")

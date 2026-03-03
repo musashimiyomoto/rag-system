@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import Any, AsyncGenerator
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, AgentRunResultEvent
 from pydantic_ai.messages import (
     FunctionToolResultEvent,
     ModelMessage,
@@ -114,6 +114,8 @@ class ChatUsecase:
         messages: list[ModelMessage],
         data: ChatRequest,
         thinking: str | None = None,
+        web_search: str | None = None,
+        retrieve: str | None = None,
     ) -> None:
         """Save the message to the history.
 
@@ -123,6 +125,8 @@ class ChatUsecase:
             messages: The messages.
             data: The chat request data.
             thinking: The thinking text captured from tool stream.
+            web_search: The web search text captured from tool stream.
+            retrieve: The retrieve text captured from tool stream.
 
         """
         records = []
@@ -157,6 +161,8 @@ class ChatUsecase:
                         "content": first_part.content,
                         "timestamp": current_time,
                         "thinking": thinking,
+                        "web_search": web_search,
+                        "retrieve": retrieve,
                         "provider_id": data.provider_id,
                         "model_name": data.model_name,
                         "tool_ids": tool_ids,
@@ -231,21 +237,22 @@ class ChatUsecase:
         return str(content)
 
     @classmethod
-    def _extract_deep_think_chunk(cls, event: Any) -> str | None:
-        """Extract deep_think tool output chunk from stream event.
+    def _extract_tool_result_chunk(cls, event: Any, tool_id: ToolId) -> str | None:
+        """Extract tool output chunk for selected tool from stream event.
 
         Args:
             event: The stream event.
+            tool_id: The tool id to extract output for.
 
         Returns:
-            The thinking chunk if the event is a deep_think tool output, otherwise None.
+            The tool chunk if the event is a matching tool output, otherwise None.
 
         """
         if not isinstance(event, FunctionToolResultEvent):
             return None
         if not isinstance(event.result, ToolReturnPart):
             return None
-        if event.result.tool_name != ToolId.DEEP_THINK:
+        if str(event.result.tool_name) != str(tool_id):
             return None
         return cls._normalize_tool_content(event.result.content)
 
@@ -291,6 +298,8 @@ class ChatUsecase:
 
         run_result = None
         thinking = ""
+        web_search = ""
+        retrieve = ""
 
         async for event in agent.run_stream_events(
             user_prompt=data.message,
@@ -319,11 +328,12 @@ class ChatUsecase:
                     tool_ids=tool_ids,
                 ).model_dump_bytes()
 
-            thinking_chunk = self._extract_deep_think_chunk(event=event)
+            thinking_chunk = self._extract_tool_result_chunk(
+                event=event, tool_id=ToolId.DEEP_THINK
+            )
             if thinking_chunk is not None:
                 thinking = self._merge_stream_text(
-                    current_text=thinking,
-                    chunk_text=thinking_chunk,
+                    current_text=thinking, chunk_text=thinking_chunk
                 )
                 yield ChatResponse(
                     role=Role.AGENT,
@@ -335,8 +345,42 @@ class ChatUsecase:
                     tool_ids=tool_ids,
                 ).model_dump_bytes()
 
-            if getattr(event, "event_kind", None) == "agent_run_result":
-                run_result = getattr(event, "result", None)
+            web_search_chunk = self._extract_tool_result_chunk(
+                event=event, tool_id=ToolId.WEB_SEARCH
+            )
+            if web_search_chunk is not None:
+                web_search = self._merge_stream_text(
+                    current_text=web_search, chunk_text=web_search_chunk
+                )
+                yield ChatResponse(
+                    role=Role.AGENT,
+                    timestamp=datetime.now(),
+                    content="",
+                    web_search=web_search_chunk,
+                    provider_id=data.provider_id,
+                    model_name=data.model_name,
+                    tool_ids=tool_ids,
+                ).model_dump_bytes()
+
+            retrieve_chunk = self._extract_tool_result_chunk(
+                event=event, tool_id=ToolId.RETRIEVE
+            )
+            if retrieve_chunk is not None:
+                retrieve = self._merge_stream_text(
+                    current_text=retrieve, chunk_text=retrieve_chunk
+                )
+                yield ChatResponse(
+                    role=Role.AGENT,
+                    timestamp=datetime.now(),
+                    content="",
+                    retrieve=retrieve_chunk,
+                    provider_id=data.provider_id,
+                    model_name=data.model_name,
+                    tool_ids=tool_ids,
+                ).model_dump_bytes()
+
+            if isinstance(event, AgentRunResultEvent):
+                run_result = event.result
 
         if run_result is None:
             return
@@ -347,4 +391,6 @@ class ChatUsecase:
             messages=run_result.new_messages(),
             data=data,
             thinking=thinking,
+            web_search=web_search,
+            retrieve=retrieve,
         )

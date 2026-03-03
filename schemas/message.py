@@ -13,6 +13,8 @@ class MessageResponse(BaseModel):
     role: Role = Field(default=..., description="Role")
     content: str = Field(default=..., description="Content")
     thinking: str | None = Field(default=None, description="Thinking")
+    web_search: str | None = Field(default=None, description="Web search")
+    retrieve: str | None = Field(default=None, description="Retrieve")
     provider_id: int | None = Field(default=None, description="Provider ID")
     model_name: str | None = Field(default=None, description="Model name")
     tool_ids: list[ToolId] = Field(default_factory=list, description="Tool IDs")

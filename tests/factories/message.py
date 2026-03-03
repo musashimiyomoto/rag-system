@@ -14,6 +14,8 @@ class MessageFactory(AsyncSQLAlchemyModelFactory):
     role = Role.USER
     content = LazyAttribute(lambda obj: fake.text())
     thinking = LazyAttribute(lambda obj: fake.text())
+    web_search = LazyAttribute(lambda obj: fake.text())
+    retrieve = LazyAttribute(lambda obj: fake.text())
     provider_id = None
     model_name = None
     tool_ids = []

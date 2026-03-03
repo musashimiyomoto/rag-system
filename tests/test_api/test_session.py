@@ -105,6 +105,28 @@ class TestGetMessages(BaseTestCase):
         data = await self.assert_response_ok(response=response)
         assert len(data) == message_count
 
+    @pytest.mark.asyncio
+    async def test_contains_tool_result_fields(self) -> None:
+        source = await SourceFactory.create_async(session=self.session)
+        session = await SessionFactory.create_async(session=self.session)
+        await SessionSourceFactory.create_async(
+            session=self.session, session_id=session.id, source_id=source.id
+        )
+        message = await MessageFactory.create_async(
+            session=self.session,
+            session_id=session.id,
+            web_search="web result",
+            retrieve="retrieve result",
+        )
+
+        response = await self.client.get(url=self.url.format(session_id=session.id))
+
+        data = await self.assert_response_ok(response=response)
+        assert len(data) == 1
+        assert data[0]["id"] == message.id
+        assert data[0]["web_search"] == "web result"
+        assert data[0]["retrieve"] == "retrieve result"
+
 
 class TestGetSessions(BaseTestCase):
     url = "/session/list"

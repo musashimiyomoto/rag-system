@@ -34,6 +34,8 @@ def load_session_messages(client: ApiClient, session_id: int) -> None:
                 "model_name": item.get("model_name"),
                 "tool_ids": item.get("tool_ids") or [],
                 "thinking": item.get("thinking"),
+                "web_search": item.get("web_search"),
+                "retrieve": item.get("retrieve"),
             }
             for item in messages.data
         ]
@@ -324,6 +326,14 @@ def render_history(client: ApiClient, session_id: int | None) -> list[dict[str, 
             if role == "assistant" and thinking:
                 with st.expander("Thinking", expanded=False):
                     st.markdown(thinking)
+            web_search = str(message.get("web_search") or "")
+            if role == "assistant" and web_search:
+                with st.expander("Web Search", expanded=False):
+                    st.markdown(web_search)
+            retrieve = str(message.get("retrieve") or "")
+            if role == "assistant" and retrieve:
+                with st.expander("Retrieve", expanded=False):
+                    st.markdown(retrieve)
             metadata_text = format_message_metadata(message)
             if metadata_text:
                 st.caption(metadata_text)
@@ -426,6 +436,14 @@ def sync_retrieve_tool_with_sources(tools_map: dict[str, dict[str, Any]]) -> Non
         ]
 
 
+def render_tool_result(
+    placeholder: Any, title: str, content: str, expanded: bool = True
+) -> None:
+    """Render tool output inside an expander."""
+    with placeholder.container(), st.expander(title, expanded=expanded):
+        st.markdown(content)
+
+
 def send_prompt(
     client: ApiClient,
     prompt: str,
@@ -466,9 +484,13 @@ def send_prompt(
     with st.chat_message("assistant"):
         placeholder = st.empty()
         thinking_placeholder = st.empty()
+        web_search_placeholder = st.empty()
+        retrieve_placeholder = st.empty()
         metadata_placeholder = st.empty()
         final_answer = ""
         final_thinking = ""
+        final_web_search = ""
+        final_retrieve = ""
         chunk_model_name = model_name
         chunk_tool_ids = list(tool_ids)
         try:
@@ -482,6 +504,8 @@ def send_prompt(
                 role = str(chunk.get("role", ""))
                 content = str(chunk.get("content", ""))
                 thinking = str(chunk.get("thinking") or "")
+                web_search = str(chunk.get("web_search") or "")
+                retrieve = str(chunk.get("retrieve") or "")
                 model_name_from_chunk = str(chunk.get("model_name", "")) or model_name
                 tool_ids_from_chunk = chunk.get("tool_ids") or tool_ids
                 if role == "agent":
@@ -490,11 +514,27 @@ def send_prompt(
                         placeholder.markdown(final_answer)
                     if thinking:
                         final_thinking = merge_stream_chunk(final_thinking, thinking)
-                        with (
-                            thinking_placeholder.container(),
-                            st.expander("Thinking", expanded=True),
-                        ):
-                            st.markdown(final_thinking)
+                        render_tool_result(
+                            placeholder=thinking_placeholder,
+                            title="Thinking",
+                            content=final_thinking,
+                        )
+                    if web_search:
+                        final_web_search = merge_stream_chunk(
+                            final_web_search, web_search
+                        )
+                        render_tool_result(
+                            placeholder=web_search_placeholder,
+                            title="Web Search",
+                            content=final_web_search,
+                        )
+                    if retrieve:
+                        final_retrieve = merge_stream_chunk(final_retrieve, retrieve)
+                        render_tool_result(
+                            placeholder=retrieve_placeholder,
+                            title="Retrieve",
+                            content=final_retrieve,
+                        )
                     chunk_model_name = model_name_from_chunk
                     chunk_tool_ids = [str(tool_id) for tool_id in tool_ids_from_chunk]
                     metadata_placeholder.caption(
@@ -509,12 +549,14 @@ def send_prompt(
             st.error(f"HTTP {exc.status_code}: {exc.detail}")
             return
 
-    if final_answer or final_thinking:
+    if final_answer or final_thinking or final_web_search or final_retrieve:
         history.append(
             {
                 "role": "agent",
                 "content": final_answer,
                 "thinking": final_thinking or None,
+                "web_search": final_web_search or None,
+                "retrieve": final_retrieve or None,
                 "provider_id": provider_id,
                 "model_name": chunk_model_name,
                 "tool_ids": chunk_tool_ids,
