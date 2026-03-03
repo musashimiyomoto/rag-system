@@ -1,1 +1,1 @@
-GITHUB_MODELS_URL = "https://models.github.ai/inference"
+GITHUB_MODELS_URL = "https://models.github.ai/catalog/models"
