@@ -13,8 +13,14 @@ def render_providers_tab(client: ApiClient) -> None:
     """
     st.subheader("Providers")
     with st.form("create_provider"):
-        provider_name = st.selectbox("Provider", options=["openai", "google", "ollama"])
-        api_key = st.text_input("API Key (optional for ollama)", type="password")
+        provider_name = st.selectbox(
+            "Provider",
+            options=["openai", "google", "anthropic", "github", "ollama"],
+        )
+        api_key = st.text_input(
+            "API Key (optional only for ollama)",
+            type="password",
+        )
         submitted = st.form_submit_button("Create provider")
         if submitted:
             api_key_value = api_key.strip() or None

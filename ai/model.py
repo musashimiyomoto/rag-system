@@ -1,4 +1,5 @@
-from pydantic_ai.models import Model, google, openai
+from pydantic_ai.models import Model, anthropic, google, openai
+from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -23,29 +24,44 @@ def get_model(
         The model and settings.
 
     """
-    if provider_name == ProviderName.GOOGLE:
-        return (
-            google.GoogleModel(
-                model_name=model_name, provider=GoogleProvider(api_key=api_key)
-            ),
-            google.GoogleModelSettings(),
-        )
-
-    if provider_name == ProviderName.OPENAI:
-        return (
-            openai.OpenAIChatModel(
-                model_name=model_name, provider=OpenAIProvider(api_key=api_key)
-            ),
-            openai.OpenAIChatModelSettings(),
-        )
-
-    if provider_name == ProviderName.OLLAMA:
-        return (
-            openai.OpenAIChatModel(
-                model_name=model_name,
-                provider=OllamaProvider(base_url=f"{ollama_settings.url}/v1"),
-            ),
-            openai.OpenAIChatModelSettings(),
-        )
-
-    raise ProviderValidationError(message=f"Unsupported provider: {provider_name}")
+    match provider_name:
+        case ProviderName.GOOGLE:
+            return (
+                google.GoogleModel(
+                    model_name=model_name, provider=GoogleProvider(api_key=api_key)
+                ),
+                google.GoogleModelSettings(),
+            )
+        case ProviderName.OPENAI:
+            return (
+                openai.OpenAIChatModel(
+                    model_name=model_name, provider=OpenAIProvider(api_key=api_key)
+                ),
+                openai.OpenAIChatModelSettings(),
+            )
+        case ProviderName.ANTHROPIC:
+            return (
+                anthropic.AnthropicModel(
+                    model_name=model_name, provider=AnthropicProvider(api_key=api_key)
+                ),
+                anthropic.AnthropicModelSettings(),
+            )
+        case ProviderName.GITHUB:
+            return (
+                openai.OpenAIChatModel(
+                    model_name=model_name, provider=OpenAIProvider(api_key=api_key)
+                ),
+                openai.OpenAIChatModelSettings(),
+            )
+        case ProviderName.OLLAMA:
+            return (
+                openai.OpenAIChatModel(
+                    model_name=model_name,
+                    provider=OllamaProvider(base_url=f"{ollama_settings.url}/v1"),
+                ),
+                openai.OpenAIChatModelSettings(),
+            )
+        case _:
+            raise ProviderValidationError(
+                message=f"Unsupported provider: {provider_name}"
+            )

@@ -14,9 +14,12 @@ class ProviderCreateRequest(ProviderBaseRequest):
 
     @model_validator(mode="after")
     def validate_api_key(self) -> "ProviderCreateRequest":
-        if self.name in (ProviderName.OPENAI, ProviderName.GOOGLE) and (
-            not self.api_key or not self.api_key.strip()
-        ):
+        if self.name in (
+            ProviderName.OPENAI,
+            ProviderName.GOOGLE,
+            ProviderName.ANTHROPIC,
+            ProviderName.GITHUB,
+        ) and (not self.api_key or not self.api_key.strip()):
             msg = f"api_key is required for provider: {self.name}"
             raise ValueError(msg)
 

@@ -29,6 +29,16 @@ class TestProvider(BaseTestCase):
         assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
+    async def test_create_anthropic_without_api_key_returns_422(self) -> None:
+        response = await self.client.post(url=self.url, json={"name": "anthropic"})
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    @pytest.mark.asyncio
+    async def test_create_github_without_api_key_returns_422(self) -> None:
+        response = await self.client.post(url=self.url, json={"name": "github"})
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    @pytest.mark.asyncio
     async def test_update_provider_encrypts_api_key(self) -> None:
         provider = await ProviderFactory.create_async(
             session=self.session,
