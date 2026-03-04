@@ -13,7 +13,12 @@ class OllamaSettings(BaseSettings):
 
     @property
     def url(self) -> str:
-        """Return the base URL for the Ollama service."""
+        """Return the base URL for the Ollama service.
+
+        Returns:
+            HTTP base URL composed from configured host and port.
+
+        """
         return f"http://{self.host}:{self.port}"
 
 

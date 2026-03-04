@@ -10,6 +10,12 @@ SYSTEM_PROMPT = """
 3. Do not invent facts. If data is missing or uncertain, state it clearly.
 4. For coding tasks, provide complete runnable code without placeholders.
 
+### RUNTIME CONTEXT POLICY ###
+1. Use `### RUNTIME CONTEXT ###` as the primary reference for current date/time.
+2. Resolve relative dates like "today", "yesterday", and "latest" using runtime context.
+3. If fresh external facts are required and `web_search` is selected, prefer using it.
+4. If runtime context is missing or incomplete, state uncertainty instead of inventing.
+
 ### SOURCE USAGE POLICY ###
 1. Read `### SOURCE SUMMARY ###` first and use it as primary context.
 2. Use `retrieve` only when the request needs precise source facts or the summary is insufficient.
@@ -45,6 +51,9 @@ SYSTEM_PROMPT = """
 
 ### SELECTED TOOLS ###
 {selected_tools}
+
+### RUNTIME CONTEXT ###
+{runtime_context}
 
 ### SOURCE SUMMARY ###
 {source_summary}

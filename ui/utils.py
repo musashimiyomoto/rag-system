@@ -41,7 +41,15 @@ def show_table(data: list[dict[str, Any]], title: str | None = None) -> None:
 
 
 def _normalize_error_detail(detail: Any) -> str:
-    """Convert API error payloads to a readable string."""
+    """Convert API error payloads to a readable string.
+
+    Args:
+        detail: Raw error payload from API response.
+
+    Returns:
+        Normalized human-readable error text.
+
+    """
     normalized = ""
 
     if detail is None:

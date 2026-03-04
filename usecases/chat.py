@@ -39,7 +39,16 @@ class ChatUsecase:
     async def get_session_source_ids(
         self, session: AsyncSession, session_id: int
     ) -> list[int]:
-        """Get source IDs attached to a chat session."""
+        """Get source IDs attached to a chat session.
+
+        Args:
+            session: The async session.
+            session_id: The session id.
+
+        Returns:
+            Source IDs linked to the given session.
+
+        """
         session_sources = await self._session_source_repository.get_all(
             session=session, session_id=session_id
         )
@@ -47,12 +56,28 @@ class ChatUsecase:
 
     @staticmethod
     def get_tool_ids(data: ChatRequest) -> list[ToolId]:
-        """Get ordered tool IDs from the request."""
+        """Get ordered tool IDs from the request.
+
+        Args:
+            data: The chat request.
+
+        Returns:
+            Ordered list of tool IDs from the request payload.
+
+        """
         return [tool.id for tool in data.tools]
 
     @staticmethod
     def get_retrieve_source_ids(data: ChatRequest) -> list[int] | None:
-        """Get retrieve source IDs from the request."""
+        """Get retrieve source IDs from the request.
+
+        Args:
+            data: The chat request.
+
+        Returns:
+            Source IDs from retrieve tool config, or None when absent.
+
+        """
         for tool in data.tools:
             if isinstance(tool, RetrieveToolRequest):
                 return tool.source_ids
@@ -62,7 +87,13 @@ class ChatUsecase:
     def validate_retrieve_sources(
         session_source_ids: list[int], retrieve_source_ids: list[int] | None
     ) -> None:
-        """Validate retrieve source IDs against session source IDs."""
+        """Validate retrieve source IDs against session source IDs.
+
+        Args:
+            session_source_ids: Source IDs attached to the session.
+            retrieve_source_ids: Source IDs requested by retrieve tool.
+
+        """
         if retrieve_source_ids is None:
             return
 
@@ -172,6 +203,33 @@ class ChatUsecase:
         await self._message_repository.create_many(session=session, data=records)
 
     @staticmethod
+    def _normalize_tool_name_to_id(tool_name: str) -> ToolId | None:
+        """Map runtime tool name to internal ToolId.
+
+        Args:
+            tool_name: Tool name reported by pydantic-ai runtime.
+
+        Returns:
+            Matching internal ToolId, otherwise None.
+
+        """
+        normalized = (tool_name or "").strip()
+        if not normalized:
+            return None
+
+        aliases: dict[str, ToolId] = {
+            "duckduckgo_search": ToolId.WEB_SEARCH,
+        }
+        mapped = aliases.get(normalized)
+        if mapped is not None:
+            return mapped
+
+        try:
+            return ToolId(normalized)
+        except ValueError:
+            return None
+
+    @staticmethod
     def _merge_stream_text(current_text: str, chunk_text: str) -> str:
         """Merge streamed text chunks into one deterministic string.
 
@@ -252,22 +310,28 @@ class ChatUsecase:
             return None
         if not isinstance(event.result, ToolReturnPart):
             return None
-        if str(event.result.tool_name) != str(tool_id):
+        executed_tool_id = cls._normalize_tool_name_to_id(str(event.result.tool_name))
+        if executed_tool_id != tool_id:
             return None
         return cls._normalize_tool_content(event.result.content)
 
     @staticmethod
     def _extract_executed_tool_id(event: Any) -> ToolId | None:
-        """Extract executed tool id from stream event."""
+        """Extract executed tool id from stream event.
+
+        Args:
+            event: The stream event.
+
+        Returns:
+            Executed tool ID for tool-result events, otherwise None.
+
+        """
         if not isinstance(event, FunctionToolResultEvent):
             return None
         if not isinstance(event.result, ToolReturnPart):
             return None
 
-        try:
-            return ToolId(str(event.result.tool_name))
-        except ValueError:
-            return None
+        return ChatUsecase._normalize_tool_name_to_id(str(event.result.tool_name))
 
     async def stream_messages(
         self, data: ChatRequest, session: AsyncSession, agent: Agent[AgentDeps, str]

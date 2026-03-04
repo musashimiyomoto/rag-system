@@ -73,7 +73,16 @@ def _select_source_ids(
 
 
 def _normalize_n_results(requested: int | None, default: int) -> int:
-    """Normalize n_results with safe bounds."""
+    """Normalize n_results with safe bounds.
+
+    Args:
+        requested: User-requested number of results.
+        default: Fallback value when user value is not provided.
+
+    Returns:
+        Result count clamped to allowed min/max boundaries.
+
+    """
     if requested is None:
         return default
 
@@ -84,7 +93,16 @@ def _build_query_filter(
     filters: Mapping[str, Any] | None,
     allowed_fields: set[str],
 ) -> models.Filter | None:
-    """Build validated Qdrant filter for DB source."""
+    """Build validated Qdrant filter for DB source.
+
+    Args:
+        filters: Raw filter mapping from user input.
+        allowed_fields: Fields allowed for filtering for the source.
+
+    Returns:
+        Validated Qdrant filter, or None when no filters are provided.
+
+    """
     if not filters:
         return None
 
@@ -108,7 +126,17 @@ def _build_filter_condition(
     raw_spec: Any,
     allowed_fields: set[str],
 ) -> models.FieldCondition:
-    """Build single validated filter condition."""
+    """Build single validated filter condition.
+
+    Args:
+        field_name: Metadata field name to filter.
+        raw_spec: Raw condition payload for the field.
+        allowed_fields: Fields allowed for filtering for the source.
+
+    Returns:
+        Validated Qdrant field condition.
+
+    """
     if field_name not in allowed_fields:
         msg = f"Filter field '{field_name}' is not allowed"
         raise ValueError(msg)

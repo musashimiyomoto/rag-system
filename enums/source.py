@@ -19,6 +19,12 @@ class SourceType(StrEnum):
 
     @classmethod
     def get_file_types(cls) -> set["SourceType"]:
+        """Return source types supported for file uploads.
+
+        Returns:
+            Set of file-based source types.
+
+        """
         return {
             cls.PDF,
             cls.TXT,
@@ -36,6 +42,12 @@ class SourceType(StrEnum):
 
     @classmethod
     def get_db_types(cls) -> set["SourceType"]:
+        """Return source types supported for database connectors.
+
+        Returns:
+            Set of DB-based source types.
+
+        """
         return {cls.POSTGRES, cls.CLICKHOUSE}
 
 

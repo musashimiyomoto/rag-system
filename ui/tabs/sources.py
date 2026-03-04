@@ -127,7 +127,15 @@ def render_upload_form(
 def _render_db_credentials_inputs(
     source_type: str,
 ) -> tuple[dict[str, object], str | None]:
-    """Render DB credentials form fields and return values."""
+    """Render DB credentials form fields and return values.
+
+    Args:
+        source_type: Selected DB source type.
+
+    Returns:
+        Credentials dictionary and optional schema filter.
+
+    """
     host = st.text_input("Host", key="db_source_host", value="")
     default_port = 5432 if source_type == "postgres" else 8123
     port = st.number_input(
@@ -172,7 +180,13 @@ def _render_db_credentials_inputs(
 
 
 def _load_db_tables(client: ApiClient, upload_enabled: bool) -> None:
-    """Load DB table metadata and store in session state."""
+    """Load DB table metadata and store in session state.
+
+    Args:
+        client: UI API client.
+        upload_enabled: Flag that controls form submission availability.
+
+    """
     st.markdown("### Database source")
 
     source_type = st.selectbox(
@@ -207,7 +221,13 @@ def _load_db_tables(client: ApiClient, upload_enabled: bool) -> None:
 
 
 def _render_db_mapping_and_create(client: ApiClient, upload_enabled: bool) -> None:
-    """Render DB mapping selectors and create action."""
+    """Render DB mapping selectors and create action.
+
+    Args:
+        client: UI API client.
+        upload_enabled: Flag that controls source creation action.
+
+    """
     tables = st.session_state.get("db_source_tables", [])
     if not isinstance(tables, list) or len(tables) == 0:
         st.info("Load tables to configure DB source")
@@ -291,7 +311,13 @@ def _render_db_mapping_and_create(client: ApiClient, upload_enabled: bool) -> No
 
 
 def render_db_source_form(client: ApiClient, upload_enabled: bool) -> None:
-    """Render DB source introspection and creation form."""
+    """Render DB source introspection and creation form.
+
+    Args:
+        client: UI API client.
+        upload_enabled: Flag that controls DB form actions.
+
+    """
     with st.container(border=True):
         _load_db_tables(client=client, upload_enabled=upload_enabled)
         _render_db_mapping_and_create(client=client, upload_enabled=upload_enabled)

@@ -11,24 +11,56 @@ from enums import SourceType
 
 
 def _decode_text_content(content: bytes) -> str:
-    """Decode text content."""
+    """Decode text content.
+
+    Args:
+        content: Raw text bytes.
+
+    Returns:
+        Decoded text with invalid bytes ignored.
+
+    """
     return content.decode(encoding=UTF8, errors="ignore")
 
 
 def _normalize_extracted_text(text: str) -> str:
-    """Normalize extracted text without empty lines."""
+    """Normalize extracted text without empty lines.
+
+    Args:
+        text: Extracted text before normalization.
+
+    Returns:
+        Normalized text with trimmed non-empty lines.
+
+    """
     return "\n".join(line.strip() for line in text.splitlines() if line.strip())
 
 
 def _extract_html_text(raw_text: str) -> str:
-    """Extract html text."""
+    """Extract html text.
+
+    Args:
+        raw_text: Raw HTML content as text.
+
+    Returns:
+        Plain text extracted from HTML.
+
+    """
     beautiful_soup = importlib.import_module("bs4").BeautifulSoup
 
     return beautiful_soup(raw_text, features="html.parser").get_text(separator="\n")
 
 
 def _extract_docx_text(content: bytes) -> str:
-    """Extract docx text."""
+    """Extract docx text.
+
+    Args:
+        content: DOCX file content bytes.
+
+    Returns:
+        Plain text extracted from DOCX paragraphs.
+
+    """
     document_class = importlib.import_module("docx").Document
 
     document = document_class(BytesIO(initial_bytes=content))
@@ -36,14 +68,30 @@ def _extract_docx_text(content: bytes) -> str:
 
 
 def _extract_rtf_text(content: bytes) -> str:
-    """Extract rtf text."""
+    """Extract rtf text.
+
+    Args:
+        content: RTF file content bytes.
+
+    Returns:
+        Plain text extracted from RTF.
+
+    """
     rtf_to_text = importlib.import_module("striprtf.striprtf").rtf_to_text
 
     return rtf_to_text(_decode_text_content(content=content))
 
 
 def _extract_odt_text(content: bytes) -> str:
-    """Extract odt text."""
+    """Extract odt text.
+
+    Args:
+        content: ODT file content bytes.
+
+    Returns:
+        Plain text extracted from ODT paragraphs.
+
+    """
     teletype = importlib.import_module("odf.teletype")
     load = importlib.import_module("odf.opendocument").load
     paragraph_type = importlib.import_module("odf.text").P
@@ -56,7 +104,15 @@ def _extract_odt_text(content: bytes) -> str:
 
 
 def _extract_epub_text(content: bytes) -> str:
-    """Extract epub text."""
+    """Extract epub text.
+
+    Args:
+        content: EPUB file content bytes.
+
+    Returns:
+        Plain text extracted from EPUB document items.
+
+    """
     beautiful_soup = importlib.import_module("bs4").BeautifulSoup
     ebooklib = importlib.import_module("ebooklib")
     epub = importlib.import_module("ebooklib.epub")
@@ -72,7 +128,15 @@ def _extract_epub_text(content: bytes) -> str:
 
 
 def _extract_pptx_text(content: bytes) -> str:
-    """Extract pptx text."""
+    """Extract pptx text.
+
+    Args:
+        content: PPTX file content bytes.
+
+    Returns:
+        Plain text extracted from slide shapes.
+
+    """
     presentation_class = importlib.import_module("pptx").Presentation
 
     presentation = presentation_class(BytesIO(initial_bytes=content))
@@ -86,7 +150,15 @@ def _extract_pptx_text(content: bytes) -> str:
 
 
 def _extract_xlsx_text(content: bytes) -> str:
-    """Extract xlsx text."""
+    """Extract xlsx text.
+
+    Args:
+        content: XLSX file content bytes.
+
+    Returns:
+        Plain text representation of worksheet rows.
+
+    """
     load_workbook = importlib.import_module("openpyxl").load_workbook
 
     workbook = load_workbook(
@@ -103,7 +175,15 @@ def _extract_xlsx_text(content: bytes) -> str:
 
 
 def _extract_eml_text(content: bytes) -> str:
-    """Extract eml text."""
+    """Extract eml text.
+
+    Args:
+        content: EML file content bytes.
+
+    Returns:
+        Plain text extracted from supported email parts.
+
+    """
     msg = message_from_bytes(content)
     chunks = []
 
@@ -135,7 +215,16 @@ def _extract_eml_text(content: bytes) -> str:
 
 
 def _extract_text(source_type: SourceType, content: bytes) -> str:
-    """Extract UTF-8 text from source bytes without writing to disk."""
+    """Extract UTF-8 text from source bytes without writing to disk.
+
+    Args:
+        source_type: Source type describing extraction strategy.
+        content: Source file content bytes.
+
+    Returns:
+        Normalized extracted text.
+
+    """
     if source_type in {SourceType.TXT, SourceType.MD}:
         text = _decode_text_content(content=content)
     elif source_type in {SourceType.HTML, SourceType.HTM}:
@@ -164,7 +253,16 @@ def _extract_text(source_type: SourceType, content: bytes) -> str:
 
 
 def _generate_chunks(text: str, chunk_size: int = 512) -> list[str]:
-    """Generate chunks from extracted text."""
+    """Generate chunks from extracted text.
+
+    Args:
+        text: Extracted source text.
+        chunk_size: Maximum size of each chunk.
+
+    Returns:
+        List of text chunks ready for indexing.
+
+    """
     return RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=0
     ).split_text(text=text)
@@ -177,7 +275,19 @@ async def index_file_source(
     collection: str,
     content: bytes,
 ) -> list[str]:
-    """Index file source and return text chunks for summary."""
+    """Index file source and return text chunks for summary.
+
+    Args:
+        source_id: Source ID to store in vector payload.
+        source_name: Source name to store in vector payload.
+        source_type: Source type used for text extraction.
+        collection: Vector collection name.
+        content: Source file content bytes.
+
+    Returns:
+        Text chunks used for indexing and summary generation.
+
+    """
     chunks = _generate_chunks(
         text=_extract_text(source_type=source_type, content=content)
     )

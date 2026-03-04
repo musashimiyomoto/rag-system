@@ -38,6 +38,12 @@ async def introspect_clickhouse(
     """
 
     def _query() -> list[tuple[Any, ...]]:
+        """Load raw table metadata rows from ClickHouse.
+
+        Returns:
+            Metadata rows with schema, table, column name, and column type.
+
+        """
         client = clickhouse_connect.get_client(
             host=str(credentials["host"]),
             port=int(credentials["port"]),
@@ -139,6 +145,15 @@ async def stream_clickhouse_rows(
     )
 
     def _query_batch(offset: int) -> list[dict[str, Any]]:
+        """Load one paginated batch of table rows.
+
+        Args:
+            offset: Number of rows to skip before reading the next batch.
+
+        Returns:
+            Selected table rows converted to dictionaries.
+
+        """
         client = clickhouse_connect.get_client(
             host=str(credentials["host"]),
             port=int(credentials["port"]),

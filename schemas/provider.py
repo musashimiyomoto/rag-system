@@ -14,6 +14,15 @@ class ProviderCreateRequest(ProviderBaseRequest):
 
     @model_validator(mode="after")
     def validate_api_key(self) -> "ProviderCreateRequest":
+        """Validate provider API key requirements for selected providers.
+
+        Returns:
+            The validated provider create request instance.
+
+        Raises:
+            ValueError: If API key is missing for providers that require it.
+
+        """
         if self.name in (
             ProviderName.OPENAI,
             ProviderName.GOOGLE,

@@ -45,6 +45,15 @@ class ChatRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_tools(self) -> "ChatRequest":
+        """Validate that each tool ID appears only once in the request.
+
+        Returns:
+            The validated chat request instance.
+
+        Raises:
+            ValueError: If duplicate tool IDs are provided.
+
+        """
         tool_ids = [tool.id for tool in self.tools]
         if len(tool_ids) != len(set(tool_ids)):
             msg = "Duplicate tool IDs are not allowed"
@@ -65,4 +74,10 @@ class ChatResponse(BaseModel):
     warnings: list[str] | None = Field(default=None, description="Runtime warnings")
 
     def model_dump_bytes(self) -> bytes:
+        """Serialize chat response to newline-delimited JSON bytes.
+
+        Returns:
+            UTF-8 encoded JSON payload with trailing newline.
+
+        """
         return self.model_dump_json().encode(UTF8) + b"\n"

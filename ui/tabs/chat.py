@@ -191,7 +191,15 @@ def get_sessions_context(client: ApiClient) -> dict[int, dict[str, Any]] | None:
 
 
 def resolve_effective_session_id(sessions_map: dict[int, dict[str, Any]]) -> int | None:
-    """Resolve active session from selector/state and validate against map."""
+    """Resolve active session from selector/state and validate against map.
+
+    Args:
+        sessions_map: Sessions keyed by ID.
+
+    Returns:
+        Valid session ID from state/selector, otherwise None.
+
+    """
     selected_session_id = st.session_state.get("selected_session_id")
     if isinstance(selected_session_id, int) and selected_session_id in sessions_map:
         return selected_session_id
@@ -398,7 +406,16 @@ def ensure_session_for_prompt(
 def build_chat_tools_payload(
     selected_tool_ids: list[str], selected_source_ids: list[int]
 ) -> list[dict[str, Any]] | None:
-    """Build chat tools payload for the API request."""
+    """Build chat tools payload for the API request.
+
+    Args:
+        selected_tool_ids: Tool IDs selected in UI.
+        selected_source_ids: Source IDs attached to active session.
+
+    Returns:
+        Tools payload for chat request, or None when validation fails.
+
+    """
     payload: list[dict[str, Any]] = []
     for tool_id in selected_tool_ids:
         if tool_id == "retrieve":
@@ -417,7 +434,16 @@ def select_chat_tools(
     tool_ids: list[str],
     tools_map: dict[str, dict[str, Any]],
 ) -> list[str]:
-    """Render tool selector and apply source-aware defaults."""
+    """Render tool selector and apply source-aware defaults.
+
+    Args:
+        tool_ids: Available tool IDs.
+        tools_map: Tool metadata keyed by tool ID.
+
+    Returns:
+        Tool IDs selected by the user in current rerun.
+
+    """
     if "chat_tools_selector" not in st.session_state:
         st.session_state["chat_tools_selector"] = [
             tool_id
@@ -440,7 +466,12 @@ def select_chat_tools(
 
 
 def sync_retrieve_tool_with_sources(tools_map: dict[str, dict[str, Any]]) -> None:
-    """Ensure retrieve is selected when sources are selected."""
+    """Ensure retrieve is selected when sources are selected.
+
+    Args:
+        tools_map: Tool metadata keyed by tool ID.
+
+    """
     if (
         not st.session_state["selected_session_source_ids"]
         or "retrieve" not in tools_map
@@ -466,7 +497,15 @@ def sync_retrieve_tool_with_sources(tools_map: dict[str, dict[str, Any]]) -> Non
 def render_tool_result(
     placeholder: Any, title: str, content: str, expanded: bool = True
 ) -> None:
-    """Render tool output inside an expander."""
+    """Render tool output inside an expander.
+
+    Args:
+        placeholder: Streamlit placeholder used for incremental updates.
+        title: Expander title.
+        content: Tool output to render.
+        expanded: Whether expander is initially expanded.
+
+    """
     with placeholder.container(), st.expander(title, expanded=expanded):
         st.markdown(content)
 
@@ -492,6 +531,9 @@ def send_prompt(  # noqa: C901, PLR0912, PLR0915
         tool_ids: Selected tool IDs.
         tools_payload: Tools payload for backend request.
         live_response_container: Container rendered above chat input.
+
+    Returns:
+        True when prompt handling completes, otherwise False on API error.
 
     """
     history = get_chat_history(session_id)
@@ -634,7 +676,17 @@ def handle_prompt_submission(
     selected_tool_ids: list[str],
     live_response_container: Any,
 ) -> None:
-    """Handle chat input submit and response rendering for a single rerun."""
+    """Handle chat input submit and response rendering for a single rerun.
+
+    Args:
+        client: UI API client.
+        sessions_map: Sessions keyed by ID.
+        selected_provider_id: Currently selected provider ID.
+        selected_model_name: Currently selected model name.
+        selected_tool_ids: Tool IDs selected for current request.
+        live_response_container: Streamlit container for live assistant output.
+
+    """
     prompt = st.chat_input("Write a message")
     if not prompt:
         return

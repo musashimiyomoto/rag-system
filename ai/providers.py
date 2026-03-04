@@ -11,6 +11,18 @@ from settings import ollama_settings
 
 
 def _list_openai_models(api_key: str) -> list[ProviderModelResponse]:
+    """List available OpenAI models.
+
+    Args:
+        api_key: Provider API key.
+
+    Returns:
+        Available OpenAI models as normalized response objects.
+
+    Raises:
+        ProviderUpstreamError: If the provider request fails.
+
+    """
     try:
         with openai.Client(api_key=api_key) as client:
             return [
@@ -23,6 +35,18 @@ def _list_openai_models(api_key: str) -> list[ProviderModelResponse]:
 
 
 def _list_google_models(api_key: str) -> list[ProviderModelResponse]:
+    """List available Google models.
+
+    Args:
+        api_key: Provider API key.
+
+    Returns:
+        Available Google models as normalized response objects.
+
+    Raises:
+        ProviderUpstreamError: If the provider request fails.
+
+    """
     try:
         with google.Client(api_key=api_key) as client:
             return [
@@ -37,6 +61,18 @@ def _list_google_models(api_key: str) -> list[ProviderModelResponse]:
 
 
 def _list_anthropic_models(api_key: str) -> list[ProviderModelResponse]:
+    """List available Anthropic models.
+
+    Args:
+        api_key: Provider API key.
+
+    Returns:
+        Available Anthropic models as normalized response objects.
+
+    Raises:
+        ProviderUpstreamError: If the provider request fails.
+
+    """
     try:
         client = anthropic.Anthropic(api_key=api_key)
         models = client.models.list()
@@ -53,6 +89,18 @@ def _list_anthropic_models(api_key: str) -> list[ProviderModelResponse]:
 
 
 def _list_github_models(api_key: str) -> list[ProviderModelResponse]:
+    """List available GitHub-hosted models.
+
+    Args:
+        api_key: Provider API key.
+
+    Returns:
+        Available GitHub models as normalized response objects.
+
+    Raises:
+        ProviderUpstreamError: If the provider request fails.
+
+    """
     try:
         response = httpx.get(url=GITHUB_MODELS_URL, timeout=DEFAULT_TIMEOUT)
         response.raise_for_status()
@@ -70,6 +118,15 @@ def _list_github_models(api_key: str) -> list[ProviderModelResponse]:
 
 
 def _list_ollama_models() -> list[ProviderModelResponse]:
+    """List available Ollama models.
+
+    Returns:
+        Available Ollama models as normalized response objects.
+
+    Raises:
+        ProviderUpstreamError: If the provider request fails.
+
+    """
     try:
         response = httpx.get(
             url=f"{ollama_settings.url}/api/tags", timeout=DEFAULT_TIMEOUT
