@@ -7,8 +7,20 @@ import httpx
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models
 
-from constants import EMBED_TIMEOUT
+from constants import EMBED_TIMEOUT, MAX_TEXT_LENGHT
 from settings import ollama_settings, qdrant_settings
+
+
+def _truncate_text(text: str) -> str:
+    """Truncate one text string to max chars.
+
+    Args:
+        text: The text parameter.
+    """
+    if len(text) <= MAX_TEXT_LENGHT:
+        return text
+
+    return text[:MAX_TEXT_LENGHT]
 
 
 def _normalize_point_id(point_id: str) -> str:
@@ -53,77 +65,6 @@ def _get_client() -> AsyncQdrantClient:
     return AsyncQdrantClient(host=qdrant_settings.host, port=qdrant_settings.port)
 
 
-def _validate_vector(vector: Any, *, index: int) -> list[float]:
-    """Validate and normalize one embedding vector.
-
-    Args:
-        vector: Raw embedding vector payload.
-        index: Index of the vector in the response payload.
-
-    Returns:
-        Normalized embedding vector.
-
-    Raises:
-        TypeError: If the vector format is invalid.
-        ValueError: If vector dimension is invalid.
-
-    """
-    if not isinstance(vector, list):
-        msg = f"Invalid embedding at index {index}: expected list[float]"
-        raise TypeError(msg)
-
-    normalized = []
-    for value in vector:
-        if not isinstance(value, int | float):
-            msg = f"Invalid embedding value at index {index}: expected numeric value"
-            raise TypeError(msg)
-        normalized.append(float(value))
-
-    actual_size = len(normalized)
-    expected_size = qdrant_settings.vector_size
-    if actual_size != expected_size:
-        model = qdrant_settings.embedding_model
-        msg = (
-            f"Embedding dimension mismatch for model '{model}': "
-            f"expected {expected_size}, got {actual_size}"
-        )
-        raise ValueError(msg)
-
-    return normalized
-
-
-def _validate_embeddings(embeddings: Any, *, expected_count: int) -> list[list[float]]:
-    """Validate and normalize embedding response payload.
-
-    Args:
-        embeddings: Raw embeddings payload.
-        expected_count: Number of vectors expected in response.
-
-    Returns:
-        Normalized embeddings.
-
-    Raises:
-        TypeError: If payload shape/content types are invalid.
-        ValueError: If embeddings count is invalid.
-
-    """
-    if not isinstance(embeddings, list):
-        msg = "Invalid embeddings payload: expected list[list[float]]"
-        raise TypeError(msg)
-
-    if len(embeddings) != expected_count:
-        msg = (
-            f"Invalid embeddings count: expected {expected_count}, "
-            f"got {len(embeddings)}"
-        )
-        raise ValueError(msg)
-
-    return [
-        _validate_vector(vector=vector, index=index)
-        for index, vector in enumerate(embeddings)
-    ]
-
-
 async def _embed_texts(texts: Sequence[str]) -> list[list[float]]:
     """Embed texts via Ollama.
 
@@ -144,7 +85,10 @@ async def _embed_texts(texts: Sequence[str]) -> list[list[float]]:
         try:
             response = await client.post(
                 url=f"{ollama_settings.url}/api/embed",
-                json={"model": qdrant_settings.embedding_model, "input": texts},
+                json={
+                    "model": qdrant_settings.embedding_model,
+                    "input": [_truncate_text(text=text) for text in texts],
+                },
                 timeout=EMBED_TIMEOUT,
             )
             response.raise_for_status()
@@ -153,10 +97,17 @@ async def _embed_texts(texts: Sequence[str]) -> list[list[float]]:
             msg = "Failed to fetch embeddings from Ollama"
             raise ValueError(msg) from error
 
-    return _validate_embeddings(
-        embeddings=payload.get("embeddings") if isinstance(payload, dict) else None,
-        expected_count=len(texts),
-    )
+    if not isinstance(payload, dict):
+        msg = "Invalid embeddings payload: expected dict"
+        raise TypeError(msg)
+
+    embeddings = payload.get("embeddings")
+
+    if not isinstance(embeddings, list):
+        msg = "Invalid embeddings payload: expected list[list[float]]"
+        raise TypeError(msg)
+
+    return embeddings
 
 
 async def ensure_collection(name: str) -> None:

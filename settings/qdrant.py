@@ -15,7 +15,7 @@ class QdrantSettings(BaseSettings):
     embedding_model: str = Field(
         default="nomic-embed-text", title="Embedding model name"
     )
-    vector_size: int = Field(default=384, title="Embedding vector size")
+    vector_size: int = Field(default=768, title="Embedding vector size")
     distance: str = Field(default="Cosine", title="Distance metric")
     point_id_namespace: UUID = Field(
         default=UUID("d8a0d157-c9dd-4af8-ad5e-4b3a6a4d1f15"),

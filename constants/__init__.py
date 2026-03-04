@@ -1,6 +1,7 @@
 from constants.chat import MEDIA_TYPE
 from constants.date import WEEKEND_START_WEEKDAY
 from constants.db import IDENTIFIER_PATTERN
+from constants.embeding import MAX_TEXT_LENGHT
 from constants.encoding import UTF8
 from constants.github import GITHUB_MODELS_URL
 from constants.google import RATE_LIMIT_DELAY
@@ -11,6 +12,7 @@ from constants.summary import DB_SUMMARY_SAMPLE_LIMIT, DB_SUMMARY_TEXT_PREVIEW_L
 __all__ = [
     "MEDIA_TYPE",
     "UTF8",
+    "MAX_TEXT_LENGHT",
     "WEEKEND_START_WEEKDAY",
     "GITHUB_MODELS_URL",
     "RATE_LIMIT_DELAY",
