@@ -6,6 +6,7 @@ entrypoint_mode="${ENTRYPOINT_MODE:-backend}"
 
 if [ "${entrypoint_mode}" = "ollama" ]; then
   model_name="${OLLAMA_BOOT_MODEL:-qwen2.5:1.5b}"
+  embed_model_name="${OLLAMA_BOOT_EMBED_MODEL:-}"
 
   ollama serve &
   ollama_pid="$!"
@@ -32,6 +33,10 @@ if [ "${entrypoint_mode}" = "ollama" ]; then
 
   echo "Pulling boot model: ${model_name}"
   ollama pull "${model_name}"
+  if [ -n "${embed_model_name}" ] && [ "${embed_model_name}" != "${model_name}" ]; then
+    echo "Pulling embedding model: ${embed_model_name}"
+    ollama pull "${embed_model_name}"
+  fi
   wait "${ollama_pid}"
   exit 0
 fi

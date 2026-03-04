@@ -100,6 +100,7 @@ services:
     environment:
       ENTRYPOINT_MODE: ollama
       OLLAMA_BOOT_MODEL: qwen2.5:1.5b
+      OLLAMA_BOOT_EMBED_MODEL: nomic-embed-text
     ports:
       - "11434:11434"
     volumes:
