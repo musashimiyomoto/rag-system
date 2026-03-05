@@ -2,11 +2,11 @@
 	"recommendations": [
     "astral-sh.ty",
     "charliermarsh.ruff",
-    "ms-python.debugpy",
     "ms-python.python",
-    "ms-python.vscode-pylance",
-    "ms-python.vscode-python-envs",
+    "mikestead.dotenv",
+    "docker.docker",
     "redhat.vscode-xml",
     "redhat.vscode-yaml",
+    "FastAPILabs.fastapi-vscode",
   ]
 }
