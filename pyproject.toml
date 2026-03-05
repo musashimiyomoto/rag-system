@@ -53,7 +53,7 @@ pytest-asyncio = "*"
 pytest-cov = "*"
 factory-boy = "*"
 faker = "*"
-testcontainers = { extras = ["postgresql"], version = "*" }
+testcontainers = { extras = ["postgresql", "redis", "qdrant", "ollama"], version = "*" }
 
 [tool.ruff]
 line-length = 88

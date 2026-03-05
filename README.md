@@ -71,6 +71,12 @@ make check
 make test
 ```
 
+### Test Infrastructure
+
+Backend tests use `testcontainers` and start real `Postgres`, `Qdrant`, and `Redis` containers.
+
+For tests, source processing deploy trigger is disabled via `CORE_DISABLE_SOURCE_FLOW_DEPLOY=true` (default in app remains `false`).
+
 ## Environment Variables
 
 Base variables are defined in `.env.example`.

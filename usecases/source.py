@@ -356,6 +356,9 @@ class SourceUsecase:
             source_id: Source identifier to process.
 
         """
+        if core_settings.disable_source_flow_deploy:
+            return
+
         await run_deployment(name=await deploy_process_source_flow(source_id=source_id))  # ty:ignore[invalid-await]
 
     async def get_sources(self, session: AsyncSession) -> list[SourceResponse]:

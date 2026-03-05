@@ -1,5 +1,5 @@
 {
-	"recommendations": [
+  "recommendations": [
     "astral-sh.ty",
     "charliermarsh.ruff",
     "ms-python.python",

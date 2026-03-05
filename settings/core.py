@@ -13,6 +13,10 @@ class CoreSettings(BaseSettings):
         default="sources_index",
         title="Vector DB collection name for source indexing",
     )
+    disable_source_flow_deploy: bool = Field(
+        default=False,
+        title="Disable Prefect deployment trigger for source processing",
+    )
 
 
 core_settings = CoreSettings()
