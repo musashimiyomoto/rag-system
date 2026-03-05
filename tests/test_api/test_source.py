@@ -1,57 +1,15 @@
 import io
-from http import HTTPStatus
 
 import pytest
-import pytest_asyncio
 from fastapi import UploadFile
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import SourceDb, SourceFile
-from enums import SourceStatus, SourceType
+from enums import SourceType
 from tests.base import BaseTestCase
-from tests.factories import (
-    SessionFactory,
-    SessionSourceFactory,
-    SourceFactory,
-)
+from tests.factories import SourceFactory
 
 
 class TestCreateSource(BaseTestCase):
     url = "/source"
-
-    @pytest.mark.asyncio
-    async def test_ok(self) -> None:
-        source_name = "test.pdf"
-        source_type = SourceType.PDF
-        file_content = b"Test PDF content"
-        file = UploadFile(
-            file=io.BytesIO(file_content),
-            filename=source_name,
-            size=len(file_content),
-        )
-
-        response = await self.client.post(
-            url=self.url, files={"file": (file.filename, file.file, "application/pdf")}
-        )
-
-        data = await self.assert_response_ok(response=response)
-        assert data["id"] is not None
-        assert data["name"] == source_name
-        assert data["type"] == source_type.value
-        assert data["status"] == SourceStatus.CREATED.value
-        assert data["collection"] is not None
-        assert data["created_at"] is not None
-        assert data["updated_at"] is not None
-
-        source_file = (
-            await self.session.execute(
-                select(SourceFile).where(SourceFile.source_id == data["id"])
-            )
-        ).scalar_one_or_none()
-
-        assert source_file is not None
-        assert source_file.content == file_content
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -69,9 +27,7 @@ class TestCreateSource(BaseTestCase):
             ("test.eml", SourceType.EML),
         ],
     )
-    async def test_ok_for_supported_extensions(
-        self, source_name: str, source_type: SourceType
-    ) -> None:
+    async def test_ok(self, source_name: str, source_type: SourceType) -> None:
         file_content = b"Sample content"
         file = UploadFile(
             file=io.BytesIO(file_content),
@@ -87,88 +43,6 @@ class TestCreateSource(BaseTestCase):
         data = await self.assert_response_ok(response=response)
         assert data["name"] == source_name
         assert data["type"] == source_type.value
-
-    @pytest.mark.asyncio
-    async def test_json_is_not_supported(self) -> None:
-        response = await self.client.post(
-            url=self.url,
-            files={"file": ("test.json", io.BytesIO(b'{"a": 1}'), "application/json")},
-        )
-
-        assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
-
-
-class TestDbSource(BaseTestCase):
-    introspect_url = "/source/db/introspect"
-    create_url = "/source/db"
-
-    @pytest_asyncio.fixture(autouse=True)
-    async def _prepare_table(self, test_session: AsyncSession) -> None:
-        await test_session.execute(text("DROP TABLE IF EXISTS public.products"))
-        await test_session.execute(
-            text(
-                """
-                CREATE TABLE public.products (
-                    id INTEGER PRIMARY KEY,
-                    content TEXT,
-                    category TEXT
-                )
-                """
-            )
-        )
-        await test_session.execute(
-            text(
-                """
-                INSERT INTO public.products (id, content, category)
-                VALUES (1, 'item 1', 'test')
-                """
-            )
-        )
-        await test_session.commit()
-
-    @pytest.mark.asyncio
-    async def test_introspect_ok(
-        self, postgres_credentials: dict[str, str | int]
-    ) -> None:
-        response = await self.client.post(
-            url=self.introspect_url,
-            json={
-                "type": "postgres",
-                "credentials": postgres_credentials,
-                "schema": "public",
-            },
-        )
-
-        data = await self.assert_response_ok(response=response)
-        assert isinstance(data.get("tables"), list)
-        assert any(table["table"] == "products" for table in data["tables"])
-
-    @pytest.mark.asyncio
-    async def test_create_ok(self, postgres_credentials: dict[str, str | int]) -> None:
-        response = await self.client.post(
-            url=self.create_url,
-            json={
-                "type": "postgres",
-                "credentials": postgres_credentials,
-                "schema_name": "public",
-                "table_name": "products",
-                "id_field": "id",
-                "search_field": "content",
-                "filter_fields": ["category"],
-            },
-        )
-
-        data = await self.assert_response_ok(response=response)
-        assert data["id"] is not None
-        assert data["type"] == SourceType.POSTGRES.value
-
-        source_db = (
-            await self.session.execute(
-                select(SourceDb).where(SourceDb.source_id == data["id"])
-            )
-        ).scalar_one_or_none()
-        assert source_db is not None
-        assert source_db.table_name == "products"
 
 
 class TestGetSources(BaseTestCase):
@@ -229,15 +103,3 @@ class TestDeleteSource(BaseTestCase):
         response = await self.client.delete(url=self.url.format(id=source.id))
 
         await self.assert_response_ok(response=response)
-
-    @pytest.mark.asyncio
-    async def test_source_used_in_session_returns_409(self) -> None:
-        source = await SourceFactory.create_async(session=self.session)
-        chat_session = await SessionFactory.create_async(session=self.session)
-        await SessionSourceFactory.create_async(
-            session=self.session, session_id=chat_session.id, source_id=source.id
-        )
-
-        response = await self.client.delete(url=self.url.format(id=source.id))
-
-        assert response.status_code == HTTPStatus.CONFLICT

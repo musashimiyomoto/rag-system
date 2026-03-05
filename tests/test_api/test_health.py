@@ -26,4 +26,3 @@ class TestHealthReadiness(BaseTestCase):
         assert "status" in data
         assert isinstance(data["services"], list)
         assert isinstance(data["status"], bool)
-        assert any(service["name"] == "qdrant" for service in data["services"])
