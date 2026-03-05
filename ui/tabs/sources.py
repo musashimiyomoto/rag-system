@@ -383,5 +383,7 @@ def render_sources_tab(client: ApiClient) -> None:
             if detach_result is False:
                 return
 
-        delete_result = client.delete_source(source_id=selected_source_id)
-        show_result(delete_result, "Source deleted")
+        show_result(
+            result=client.delete_source(source_id=selected_source_id),
+            success_message="Source deleted",
+        )

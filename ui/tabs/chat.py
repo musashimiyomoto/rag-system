@@ -110,6 +110,7 @@ def get_provider_context(
         key="chat_model_selector",
     )
     st.session_state["selected_model_name"] = selected_model_name
+
     return selected_provider_id, selected_model_name
 
 
@@ -130,13 +131,16 @@ def get_tool_context(
         show_result(tools_result)
         return None
 
-    tools = [
-        item for item in tools_result.data if isinstance(item, dict) and item.get("id")
-    ]
-    tools_map = {str(tool["id"]): tool for tool in tools}
-    tool_ids = sorted(tools_map.keys())
-    default_tool_ids: list[str] = []
-    return tool_ids, tools_map, default_tool_ids
+    tools_map = {
+        str(tool["id"]): tool
+        for tool in [
+            item
+            for item in tools_result.data
+            if isinstance(item, dict) and item.get("id")
+        ]
+    }
+
+    return sorted(tools_map.keys()), tools_map, []
 
 
 def get_completed_sources(
@@ -156,13 +160,14 @@ def get_completed_sources(
         show_result(sources_result)
         return None
 
-    completed_sources = [
-        source
-        for source in sources_result.data
-        if isinstance(source, dict) and source.get("status") == "completed"
-    ]
     completed_map = {
-        source["id"]: source for source in completed_sources if source.get("id")
+        source["id"]: source
+        for source in [
+            source
+            for source in sources_result.data
+            if isinstance(source, dict) and source.get("status") == "completed"
+        ]
+        if source.get("id")
     }
     completed_ids = sorted(completed_map.keys())
     return completed_ids, completed_map
@@ -246,8 +251,10 @@ def select_session(client: ApiClient, sessions_map: dict[int, dict[str, Any]]) -
         st.session_state["selected_session_source_ids"] = []
         return
 
-    session_sources = sessions_map[selected_session_id].get("source_ids", [])
-    st.session_state["selected_session_source_ids"] = list(session_sources)
+    st.session_state["selected_session_source_ids"] = list(
+        sessions_map[selected_session_id].get("source_ids", [])
+    )
+
     load_session_messages(client=client, session_id=selected_session_id)
 
 
@@ -349,23 +356,28 @@ def render_history(  # noqa: C901
             content = str(message.get("content", ""))
             if content:
                 st.markdown(content)
+
             thinking = str(message.get("thinking") or "")
             if role == "assistant" and thinking:
                 with st.expander("Thinking", expanded=False):
                     st.markdown(thinking)
+
             web_search = str(message.get("web_search") or "")
             if role == "assistant" and web_search:
                 with st.expander("Web Search", expanded=False):
                     st.markdown(web_search)
+
             retrieve = str(message.get("retrieve") or "")
             if role == "assistant" and retrieve:
                 with st.expander("Retrieve", expanded=False):
                     st.markdown(retrieve)
+
             warnings = message.get("warnings") or []
             if role == "assistant" and warnings:
                 with st.expander("Warnings", expanded=True):
                     for warning in warnings:
                         st.warning(str(warning))
+
             metadata_text = format_message_metadata(message)
             if metadata_text:
                 st.caption(metadata_text)
@@ -400,6 +412,7 @@ def ensure_session_for_prompt(
     new_session_id = int(create_result.data["id"])
     st.session_state["selected_session_id"] = new_session_id
     st.session_state["chat_history"][str(new_session_id)] = []
+
     return new_session_id
 
 
@@ -536,7 +549,7 @@ def send_prompt(  # noqa: C901, PLR0912, PLR0915
         True when prompt handling completes, otherwise False on API error.
 
     """
-    history = get_chat_history(session_id)
+    history = get_chat_history(session_id=session_id)
     history.append(
         {
             "role": "user",
@@ -549,7 +562,7 @@ def send_prompt(  # noqa: C901, PLR0912, PLR0915
     with live_response_container:
         with st.chat_message("user"):
             st.markdown(prompt)
-            metadata_text = format_message_metadata(history[-1])
+            metadata_text = format_message_metadata(message=history[-1])
             if metadata_text:
                 st.caption(metadata_text)
 
@@ -752,22 +765,23 @@ def render_chat_tab(client: ApiClient) -> None:
     tools_context = get_tool_context(client=client)
     if tools_context is None:
         return
+
     tool_ids, tools_map, default_tool_ids = tools_context
     if not st.session_state["selected_tool_ids"]:
         st.session_state["selected_tool_ids"] = default_tool_ids
+
     sync_retrieve_tool_with_sources(tools_map=tools_map)
 
     selected_tool_ids = select_chat_tools(tool_ids=tool_ids, tools_map=tools_map)
     st.session_state["selected_tool_ids"] = selected_tool_ids
 
-    current_session_id = st.session_state["selected_session_id"]
-    render_history(client=client, session_id=current_session_id)
-    live_response_container = st.container()
+    render_history(client=client, session_id=st.session_state["selected_session_id"])
+
     handle_prompt_submission(
         client=client,
         sessions_map=sessions_map,
         selected_provider_id=selected_provider_id,
         selected_model_name=selected_model_name,
         selected_tool_ids=selected_tool_ids,
-        live_response_container=live_response_container,
+        live_response_container=st.container(),
     )

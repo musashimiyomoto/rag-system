@@ -9,15 +9,8 @@ from ui.models import ApiResult
 
 class ApiClient:
     def __init__(self, base_url: str, timeout: float = 30.0):
-        """Initialize the API client.
-
-        Args:
-            base_url: Base URL of the backend API.
-            timeout: Default timeout in seconds for non-stream requests.
-
-        """
-        self.base_url = base_url.rstrip("/")
-        self.timeout = timeout
+        self._base_url = base_url.rstrip("/")
+        self._timeout = timeout
 
     def _request(self, method: str, path: str, **kwargs: Any) -> ApiResult:
         """Send an HTTP request and map the response to `ApiResult`.
@@ -31,9 +24,9 @@ class ApiClient:
             API result wrapper with parsed payload or error detail.
 
         """
-        url = f"{self.base_url}{path}"
+        url = f"{self._base_url}{path}"
         try:
-            with httpx.Client(timeout=self.timeout) as client:
+            with httpx.Client(timeout=self._timeout) as client:
                 response = client.request(method=method, url=url, **kwargs)
         except httpx.HTTPError as exc:
             return ApiResult(ok=False, status_code=0, detail=str(exc))
@@ -381,7 +374,7 @@ class ApiClient:
             ApiClientError: If request or stream handling fails.
 
         """
-        url = f"{self.base_url}/chat/stream"
+        url = f"{self._base_url}/chat/stream"
         payload = {
             "session_id": session_id,
             "message": message,
