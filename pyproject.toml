@@ -118,7 +118,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-omit = ["tests/*", "db/alembic/versions/*"]
+omit = ["tests/*", "db/alembic/versions/*", "ui/*"]
 
 [build-system]
 requires = ["poetry-core"]
