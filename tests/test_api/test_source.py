@@ -1,7 +1,10 @@
 import io
+from uuid import uuid4
 
 import pytest
 from fastapi import UploadFile
+from sqlalchemy import text
+from testcontainers.postgres import PostgresContainer
 
 from enums import SourceType
 from tests.base import BaseTestCase
@@ -103,3 +106,102 @@ class TestDeleteSource(BaseTestCase):
         response = await self.client.delete(url=self.url.format(id=source.id))
 
         await self.assert_response_ok(response=response)
+
+
+class TestIntrospectDbSource(BaseTestCase):
+    url = "/source/db/introspect"
+
+    @pytest.mark.asyncio
+    async def test_ok(self, postgres_container: PostgresContainer) -> None:
+        expected_column_count = 3
+        table_name = f"items_{uuid4().hex[:8]}"
+        await self.session.execute(
+            statement=text(
+                f"""
+                CREATE TABLE public.{table_name} (
+                    id BIGINT PRIMARY KEY,
+                    content TEXT NOT NULL,
+                    category TEXT
+                )
+                """
+            )
+        )
+        await self.session.commit()
+
+        response = await self.client.post(
+            url=self.url,
+            json={
+                "type": SourceType.POSTGRES.value,
+                "credentials": {
+                    "host": postgres_container.get_container_host_ip(),
+                    "port": int(
+                        postgres_container.get_exposed_port(postgres_container.port)
+                    ),
+                    "database": postgres_container.dbname,
+                    "user": postgres_container.username,
+                    "password": postgres_container.password,
+                },
+                "schema": "public",
+            },
+        )
+
+        data = await self.assert_response_ok(response=response)
+        assert isinstance(data["tables"], list)
+        introspected_table = next(
+            (
+                table
+                for table in data["tables"]
+                if table["schema"] == "public" and table["table"] == table_name
+            ),
+            None,
+        )
+        assert introspected_table is not None
+        assert isinstance(introspected_table["columns"], list)
+        assert len(introspected_table["columns"]) == expected_column_count
+
+
+class TestCreateDbSource(BaseTestCase):
+    url = "/source/db"
+
+    @pytest.mark.asyncio
+    async def test_ok(self, postgres_container: PostgresContainer) -> None:
+        table_name = f"records_{uuid4().hex[:8]}"
+        await self.session.execute(
+            statement=text(
+                f"""
+                CREATE TABLE public.{table_name} (
+                    id BIGINT PRIMARY KEY,
+                    content TEXT NOT NULL,
+                    category TEXT
+                )
+                """
+            )
+        )
+        await self.session.commit()
+
+        response = await self.client.post(
+            url=self.url,
+            json={
+                "name": "postgres source",
+                "type": SourceType.POSTGRES.value,
+                "credentials": {
+                    "host": postgres_container.get_container_host_ip(),
+                    "port": int(
+                        postgres_container.get_exposed_port(postgres_container.port)
+                    ),
+                    "database": postgres_container.dbname,
+                    "user": postgres_container.username,
+                    "password": postgres_container.password,
+                },
+                "schema_name": "public",
+                "table_name": table_name,
+                "id_field": "id",
+                "search_field": "content",
+                "filter_fields": ["category"],
+            },
+        )
+
+        data = await self.assert_response_ok(response=response)
+        assert data["id"] is not None
+        assert data["name"] == "postgres source"
+        assert data["type"] == SourceType.POSTGRES.value

@@ -51,6 +51,7 @@ optional = true
 pytest = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
+pytest-httpx = "*"
 factory-boy = "*"
 faker = "*"
 testcontainers = { extras = ["postgresql", "redis", "qdrant", "ollama"], version = "*" }
