@@ -3,7 +3,7 @@
     "astral-sh.ty",
     "charliermarsh.ruff",
     "ms-python.python",
-    "mikestead.dotenv",
+    "docker.docker",
     "openai.chatgpt",
     "redhat.vscode-xml",
     "redhat.vscode-yaml",
